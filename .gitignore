@@ -1,25 +1,31 @@
+# Klucze SSH
 *.key
 *.pem
+*.ppk
+id_*
+
+# Zmienne środowiskowe
 .env
 .env.*
+*.env
+
+# Ansible secrets
 secrets*.yml
 vault.yml
 *.age
 *.retry
+
+# Python
 __pycache__/
 *.venv
-
-id_*
-# środowiska i klucze
-*.env
-.env*
-*.pem
-*.ppk
-id_*
 .venv/
-__pycache__/
+
+# Logi
 *.log
 
-# dane/backupy
+# Dane/backupy
 srv/
 backups/
+
+# Prywatne konfiguracje (nie commituj z prawdziwymi danymi)
+ansible/inventories/prod/hosts.ini
