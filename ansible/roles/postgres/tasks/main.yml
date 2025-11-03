@@ -5,7 +5,7 @@
     state: directory
     owner: "{{ vps_user }}"
     group: "{{ vps_user }}"
-    mode: '0755'
+    mode: "0755"
   loop: "{{ postgres_instances }}"
   loop_control:
     label: "{{ item.name }} data dir"
@@ -16,7 +16,7 @@
     state: directory
     owner: "{{ vps_user }}"
     group: "{{ vps_user }}"
-    mode: '0755'
+    mode: "0755"
   loop: "{{ postgres_instances }}"
   loop_control:
     label: "{{ item.name }} backups dir"
@@ -31,7 +31,7 @@
     state: directory
     owner: "{{ vps_user }}"
     group: "{{ vps_user }}"
-    mode: '0755'
+    mode: "0755"
 
 - name: Generate docker-compose.yml for PostgreSQL
   template:
@@ -39,7 +39,7 @@
     dest: "{{ postgres_compose_dir_expanded }}/docker-compose.yml"
     owner: "{{ vps_user }}"
     group: "{{ vps_user }}"
-    mode: '0644'
+    mode: "0644"
 
 - name: Start PostgreSQL containers
   community.docker.docker_compose_v2:
@@ -48,4 +48,3 @@
   become_user: "{{ vps_user }}"
   environment:
     COMPOSE_PROJECT_NAME: postgres
-

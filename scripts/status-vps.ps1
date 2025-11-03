@@ -4,7 +4,7 @@ $ErrorActionPreference = 'Stop'
 $RepoRoot = Split-Path -Parent $PSScriptRoot
 $VenvActivate = Join-Path $RepoRoot '.venv\Scripts\Activate.ps1'
 if (-not (Test-Path $VenvActivate)) {
-  Write-Error "Brak venv. Utwórz: py -3.11 -m venv .venv"
+    Write-Error "Brak venv. Utwórz: py -3.11 -m venv .venv"
 }
 . $VenvActivate
 
