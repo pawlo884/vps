@@ -7,4 +7,19 @@ vault.yml
 *.age
 *.retry
 __pycache__/
-*venv
+*.venv
+
+id_*
+# środowiska i klucze
+*.env
+.env*
+*.pem
+*.ppk
+id_*
+.venv/
+__pycache__/
+*.log
+
+# dane/backupy
+srv/
+backups/
