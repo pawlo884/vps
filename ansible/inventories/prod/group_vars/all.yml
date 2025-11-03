@@ -1,0 +1,33 @@
+# Ogólne ustawienia VPS
+vps_hostname: vps
+vps_user: pawel
+
+# Firewall
+ufw_default_deny_incoming: true
+ufw_default_allow_outgoing: true
+ufw_allowed_ports:
+  - { port: 22, proto: tcp, comment: "SSH" }
+  - { port: 80, proto: tcp, comment: "HTTP" }
+  - { port: 443, proto: tcp, comment: "HTTPS" }
+
+# Podstawowe pakiety systemowe
+base_packages:
+  - git
+  - curl
+  - wget
+  - htop
+  - ufw
+  - fail2ban
+  - unattended-upgrades
+  - python3-venv
+  - python3-pip
+  - build-essential
+
+# Docker (opcjonalne)
+docker_install: true
+
+# PostgreSQL client (jeśli będzie potrzebny)
+postgres_client_install: true
+
+# Nginx (ogólna konfiguracja)
+nginx_install: true

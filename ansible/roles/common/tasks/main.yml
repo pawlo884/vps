@@ -1,0 +1,36 @@
+- name: Update apt cache
+  apt:
+    update_cache: yes
+    cache_valid_time: 3600
+
+- name: Install base packages
+  apt:
+    name: "{{ base_packages }}"
+    state: present
+
+- name: Configure automatic security updates
+  apt:
+    name: unattended-upgrades
+    state: present
+  when: "'unattended-upgrades' in base_packages"
+
+- name: Configure UFW firewall
+  ufw:
+    rule: allow
+    port: "{{ item.port }}"
+    proto: "{{ item.proto }}"
+    comment: "{{ item.comment | default('') }}"
+  loop: "{{ ufw_allowed_ports }}"
+  when: ufw_allowed_ports is defined
+
+- name: Set UFW defaults
+  ufw:
+    direction: "{{ item.direction }}"
+    policy: "{{ item.policy }}"
+  loop:
+    - { direction: 'incoming', policy: '{{ "deny" if ufw_default_deny_incoming else "allow" }}' }
+    - { direction: 'outgoing', policy: '{{ "allow" if ufw_default_allow_outgoing else "deny" }}' }
+
+- name: Enable UFW
+  ufw:
+    state: enabled

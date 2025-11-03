@@ -1,0 +1,7 @@
+- hosts: web
+  become: true
+  vars_files: []
+  roles:
+    - common
+    - web
+    - db

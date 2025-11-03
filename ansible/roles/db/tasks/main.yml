@@ -1,0 +1,5 @@
+- name: Install PostgreSQL client
+  apt:
+    name: postgresql-client
+    state: present
+  when: postgres_client_install | default(false)

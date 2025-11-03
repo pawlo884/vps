@@ -1,0 +1,20 @@
+server {
+    listen 80;
+    server_name {{ domain_name }};
+
+    location /static/ {
+        alias {{ project_dir }}/static/;
+    }
+
+    location /media/ {
+        alias {{ project_dir }}/media/;
+    }
+
+    location / {
+        proxy_pass http://unix:{{ gunicorn_socket }};
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_redirect off;
+    }
+}
