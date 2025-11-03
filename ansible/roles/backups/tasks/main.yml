@@ -1,0 +1,40 @@
+---
+- name: Ensure backup script directory exists
+  file:
+    path: /usr/local/bin
+    state: directory
+    mode: '0755'
+
+- name: Create PostgreSQL backup scripts
+  template:
+    src: pg_backup.sh.j2
+    dest: "/usr/local/bin/pg_backup_{{ item.name }}.sh"
+    mode: '0755'
+  loop: "{{ postgres_backup_instances }}"
+  when: backups_enabled | default(true)
+
+- name: Ensure backup directories exist and have correct permissions
+  file:
+    path: "{{ item.backups_dir }}"
+    state: directory
+    owner: "{{ vps_user }}"
+    group: "{{ vps_user }}"
+    mode: '0755'
+  loop: "{{ postgres_backup_instances }}"
+  when: backups_enabled | default(true)
+
+- name: Parse backup time
+  set_fact:
+    backup_hour: "{{ backup_time.split(':')[0] }}"
+    backup_minute: "{{ backup_time.split(':')[1] }}"
+
+- name: Ensure cron jobs for PostgreSQL backups
+  cron:
+    name: "PostgreSQL backup {{ item.name }}"
+    minute: "{{ backup_minute }}"
+    hour: "{{ backup_hour }}"
+    job: "/usr/local/bin/pg_backup_{{ item.name }}.sh >> /var/log/pg_backup_{{ item.name }}.log 2>&1"
+    user: "{{ vps_user }}"
+  loop: "{{ postgres_backup_instances }}"
+  when: backups_enabled | default(true)
+

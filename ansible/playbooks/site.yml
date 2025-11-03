@@ -2,6 +2,11 @@
   become: true
   vars_files: []
   roles:
-    - common
-    - web
-    - db
+    - common      # Podstawowe pakiety, firewall, hardening
+    - web         # Nginx
+    - db          # PostgreSQL client (opcjonalnie)
+    - storage     # Montowanie dysku 2TB NVMe (opcjonalnie, gdy dysk gotowy)
+    - postgres    # PostgreSQL w Dockerze (wieloinstancyjna)
+    - proxy       # Caddy reverse proxy
+    - backups     # Skrypty backupów PostgreSQL
+    - monitoring  # Netdata monitoring

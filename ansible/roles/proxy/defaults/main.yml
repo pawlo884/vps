@@ -1,0 +1,19 @@
+---
+# Caddy reverse proxy configuration
+proxy_install: true
+proxy_image: caddy:2
+proxy_compose_dir: ~/stacks/proxy
+proxy_network: proxy
+
+# Domains configuration
+# Example:
+# proxy_domains:
+#   - domain: example.com
+#     email: admin@example.com
+#     backend: app:8000
+proxy_domains: []
+
+# Ports
+proxy_http_port: 80
+proxy_https_port: 443
+

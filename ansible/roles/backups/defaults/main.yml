@@ -1,0 +1,20 @@
+---
+# Backup configuration
+backups_enabled: true
+backup_retention_days: 7
+backup_time: "02:00"  # 2 AM
+
+# PostgreSQL backup configuration
+# Should match postgres_instances from postgres role
+postgres_backup_instances:
+  - name: prod
+    container: postgres_prod
+    db_name: appdb
+    db_user: appuser
+    backups_dir: /srv/postgres/prod/backups
+  - name: test
+    container: postgres_test
+    db_name: testdb
+    db_user: testuser
+    backups_dir: /srv/postgres/test/backups
+

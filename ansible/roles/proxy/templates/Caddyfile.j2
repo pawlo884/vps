@@ -1,0 +1,13 @@
+{% for domain_config in proxy_domains %}
+{{ domain_config.domain }} {
+  encode gzip
+  reverse_proxy {{ domain_config.backend }}
+  tls {{ domain_config.email }}
+}
+{% endfor %}
+
+# Default handler (optional)
+:80 {
+  respond "No domain configured"
+}
+

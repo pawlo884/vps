@@ -1,0 +1,24 @@
+---
+- name: Check if Netdata container already exists
+  command: docker ps -a --format '{{.Names}}' --filter "name={{ monitoring_container_name }}"
+  register: netdata_exists
+  changed_when: false
+  failed_when: false
+
+- name: Remove existing Netdata container if exists
+  command: docker rm -f {{ monitoring_container_name }}
+  when: netdata_exists.stdout != ""
+
+- name: Start Netdata container
+  command: >
+    docker run -d
+    --name={{ monitoring_container_name }}
+    -p 0.0.0.0:{{ monitoring_port }}:19999
+    -v netdata-data:/var/lib/netdata
+    -v netdata-config:/etc/netdata
+    --cap-add SYS_PTRACE
+    --security-opt apparmor=unconfined
+    --restart unless-stopped
+    {{ monitoring_image }}
+  when: monitoring_install | default(true)
+

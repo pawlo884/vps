@@ -9,6 +9,7 @@ ufw_allowed_ports:
   - { port: 22, proto: tcp, comment: "SSH" }
   - { port: 80, proto: tcp, comment: "HTTP" }
   - { port: 443, proto: tcp, comment: "HTTPS" }
+  - { port: 19999, proto: tcp, comment: "Netdata monitoring" }
 
 # Podstawowe pakiety systemowe
 base_packages:
@@ -27,7 +28,88 @@ base_packages:
 docker_install: true
 
 # PostgreSQL client (jeśli będzie potrzebny)
-postgres_client_install: true
+postgres_client_install: false
 
 # Nginx (ogólna konfiguracja)
 nginx_install: true
+
+# Hardening (w common role)
+sysctl_swappiness: 10
+docker_log_max_size: 50m
+docker_log_max_file: 3
+journald_max_size: 200M
+
+# PostgreSQL w Dockerze
+postgres_instances:
+  - name: prod
+    db_name: appdb
+    db_user: appuser
+    db_password: change_me_strong  # ZMIEŃ przez --extra-vars lub vault!
+    data_dir: /srv/postgres/prod/data
+    backups_dir: /srv/postgres/prod/backups
+    shm_size: 1g
+    shared_buffers: 4GB
+    effective_cache_size: 10GB
+    work_mem: 32MB
+    maintenance_work_mem: 512MB
+  - name: test
+    db_name: testdb
+    db_user: testuser
+    db_password: change_me_test  # ZMIEŃ przez --extra-vars lub vault!
+    data_dir: /srv/postgres/test/data
+    backups_dir: /srv/postgres/test/backups
+    shm_size: 512m
+    shared_buffers: 2GB
+    effective_cache_size: 6GB
+    work_mem: 16MB
+    maintenance_work_mem: 256MB
+
+postgres_image: postgres:16
+postgres_network: dbnet
+postgres_compose_dir: ~/stacks/db
+
+# Caddy reverse proxy
+proxy_install: true
+proxy_image: caddy:2
+proxy_compose_dir: ~/stacks/proxy
+proxy_network: proxy
+proxy_http_port: 80
+proxy_https_port: 443
+
+# Przykładowa konfiguracja domen (dostosuj pod siebie):
+# proxy_domains:
+#   - domain: example.com
+#     email: admin@example.com
+#     backend: app:8000
+proxy_domains: []
+
+# Backupy PostgreSQL
+backups_enabled: true
+backup_retention_days: 7
+backup_time: "02:00"
+
+postgres_backup_instances:
+  - name: prod
+    container: postgres_prod
+    db_name: appdb
+    db_user: appuser
+    backups_dir: /srv/postgres/prod/backups
+  - name: test
+    container: postgres_test
+    db_name: testdb
+    db_user: testuser
+    backups_dir: /srv/postgres/test/backups
+
+# Monitoring (Netdata)
+monitoring_install: true
+monitoring_port: 19999
+
+# Storage - dysk 2TB NVMe
+# UWAGA: Ustaw storage_disk_device na właściwy dysk! Sprawdź przez: lsblk
+storage_configure: false  # Zmień na true gdy dysk będzie zamontowany
+storage_disk_device: ""   # np. /dev/nvme0n1 - ZMIEŃ przed uruchomieniem!
+storage_mount_point: /mnt/data2tb
+storage_filesystem: ext4
+storage_label: data2tb
+
+# Bind mounts będą automatycznie utworzone z storage_bind_mounts w roli storage

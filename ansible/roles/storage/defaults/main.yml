@@ -1,0 +1,28 @@
+---
+# Storage configuration for 2TB NVMe disk
+storage_configure: true
+
+# NVMe disk configuration
+# Uwaga: upewnij się że to właściwy dysk! Sprawdź przez lsblk przed uruchomieniem
+storage_disk_device: ""  # np. /dev/nvme0n1 - ZMIEŃ na właściwy dysk!
+storage_mount_point: /mnt/data2tb
+storage_filesystem: ext4
+storage_label: data2tb
+
+# Bind mounts configuration
+storage_bind_mounts:
+  # PostgreSQL
+  - source: /mnt/data2tb/postgres/prod/data
+    target: /srv/postgres/prod/data
+  - source: /mnt/data2tb/postgres/prod/backups
+    target: /srv/postgres/prod/backups
+  - source: /mnt/data2tb/postgres/test/data
+    target: /srv/postgres/test/data
+  - source: /mnt/data2tb/postgres/test/backups
+    target: /srv/postgres/test/backups
+  # Storage aplikacji
+  - source: /mnt/data2tb/storage/app_uploads
+    target: /srv/volumes/app_uploads
+  - source: /mnt/data2tb/storage/app_data
+    target: /srv/volumes/app_data
+

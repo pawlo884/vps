@@ -1,0 +1,37 @@
+---
+# PostgreSQL instances configuration
+# Each instance will run in separate container
+postgres_instances:
+  - name: prod
+    db_name: appdb
+    db_user: appuser
+    db_password: change_me_strong  # Zmień przez --extra-vars lub vault!
+    data_dir: /srv/postgres/prod/data
+    backups_dir: /srv/postgres/prod/backups
+    shm_size: 1g
+    shared_buffers: 4GB
+    effective_cache_size: 10GB
+    work_mem: 32MB
+    maintenance_work_mem: 512MB
+    # ports: []  # Nie wystawiaj publicznie - tylko sieć Docker
+  - name: test
+    db_name: testdb
+    db_user: testuser
+    db_password: change_me_test
+    data_dir: /srv/postgres/test/data
+    backups_dir: /srv/postgres/test/backups
+    shm_size: 512m
+    shared_buffers: 2GB
+    effective_cache_size: 6GB
+    work_mem: 16MB
+    maintenance_work_mem: 256MB
+
+# PostgreSQL image
+postgres_image: postgres:16
+
+# Docker network for databases
+postgres_network: dbnet
+
+# RAM configuration (16GB or 32GB)
+postgres_ram_gb: 16
+

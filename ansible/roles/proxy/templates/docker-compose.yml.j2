@@ -1,0 +1,24 @@
+---
+services:
+  caddy:
+    image: {{ proxy_image }}
+    container_name: caddy
+    restart: unless-stopped
+    ports:
+      - "{{ proxy_http_port }}:80"
+      - "{{ proxy_https_port }}:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - {{ proxy_network }}
+
+networks:
+  {{ proxy_network }}:
+    name: {{ proxy_network }}
+
+volumes:
+  caddy_data:
+  caddy_config:
+

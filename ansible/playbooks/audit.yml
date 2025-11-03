@@ -1,0 +1,64 @@
+---
+- hosts: web
+  gather_facts: true
+  become: true
+  vars:
+    audit_commands:
+      - name: system_info
+        cmd: |
+          echo "== uname =="; uname -a
+          echo "== lsb_release =="; (lsb_release -a 2>/dev/null || cat /etc/os-release)
+          echo "== uptime =="; uptime
+      - name: userspace
+        cmd: |
+          echo "== whoami =="; whoami
+          echo "== id =="; id
+          echo "== sudo version =="; (sudo --version | head -1)
+      - name: packages
+        cmd: |
+          echo "== key packages ==";
+          dpkg -l | egrep 'nginx|postgresql-client|ufw|fail2ban|docker|docker.io|docker-ce' || true
+      - name: services
+        cmd: |
+          echo "== services ==";
+          systemctl is-active nginx || echo 'nginx: inactive'
+          systemctl is-enabled nginx || echo 'nginx: not-enabled'
+          systemctl is-active docker || echo 'docker: inactive'
+          systemctl is-enabled docker || echo 'docker: not-enabled'
+      - name: binaries
+        cmd: |
+          echo "== versions ==";
+          (nginx -v 2>&1 || echo 'nginx: missing')
+          (psql --version 2>&1 || echo 'psql: missing')
+          (docker --version 2>&1 || echo 'docker: missing')
+          python3 --version
+      - name: firewall
+        cmd: |
+          echo "== ufw ==";
+          ufw status || true
+      - name: networking
+        cmd: |
+          echo "== listening ports ==";
+          ss -tulpen | head -n 50
+  tasks:
+    - name: Print basic facts
+      debug:
+        msg:
+          hostname: "{{ ansible_facts['hostname'] }}"
+          distro: "{{ ansible_facts['distribution'] }} {{ ansible_facts['distribution_version'] }}"
+          kernel: "{{ ansible_facts['kernel'] }}"
+          cpu_vcpus: "{{ ansible_facts['processor_vcpus'] | default(ansible_facts['processor_count']) }}"
+          memory_mb: "{{ ansible_facts['memtotal_mb'] }}"
+
+    - name: Run audit commands
+      shell: "{{ item.cmd }}"
+      register: audit_cmd_out
+      changed_when: false
+      loop: "{{ audit_commands }}"
+      loop_control:
+        label: "{{ item.name }}"
+
+    - name: Show audit outputs
+      debug:
+        var: audit_cmd_out.results
+

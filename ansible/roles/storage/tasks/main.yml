@@ -1,0 +1,162 @@
+---
+- name: Check if storage disk device is specified
+  fail:
+    msg: "Musisz podać storage_disk_device (np. /dev/nvme0n1). Sprawdź przez: lsblk"
+  when: storage_disk_device == ""
+
+- name: Check if disk exists
+  stat:
+    path: "{{ storage_disk_device }}"
+  register: disk_exists
+  delegate_to: localhost
+
+- name: Fail if disk does not exist
+  fail:
+    msg: "Dysk {{ storage_disk_device }} nie istnieje. Sprawdź: lsblk"
+  when: not disk_exists.stat.exists
+
+- name: Get disk partition info
+  shell: |
+    if [ -b {{ storage_disk_device }} ]; then
+      lsblk {{ storage_disk_device }} || true
+    fi
+  register: disk_info
+  changed_when: false
+
+- name: Display disk info (before formatting)
+  debug:
+    msg: "Znaleziony dysk: {{ storage_disk_device }}"
+
+- name: Check if disk already has partition table
+  shell: |
+    parted {{ storage_disk_device }} print 2>/dev/null | grep "Partition Table:" | awk '{print $3}' || echo "none"
+  register: partition_table
+  changed_when: false
+  failed_when: false
+
+- name: Create partition table (GPT) if needed
+  parted:
+    device: "{{ storage_disk_device }}"
+    label: gpt
+    state: present
+  when: partition_table.stdout == "none" or partition_table.stdout == ""
+
+- name: Check if partition 1 exists
+  shell: |
+    parted {{ storage_disk_device }} print 2>/dev/null | grep -q "^ 1" && echo "exists" || echo "not_exists"
+  register: partition1_exists
+  changed_when: false
+  failed_when: false
+
+- name: Create partition 1
+  parted:
+    device: "{{ storage_disk_device }}"
+    number: 1
+    state: present
+    part_start: 1MiB
+    part_end: 100%
+    flags: [ lba ]
+  when: partition1_exists.stdout == "not_exists"
+
+- name: Get partition device name
+  shell: |
+    if [ -b {{ storage_disk_device }}p1 ]; then
+      echo "{{ storage_disk_device }}p1"
+    elif [ -b {{ storage_disk_device }}1 ]; then
+      echo "{{ storage_disk_device }}1"
+    else
+      echo ""
+    fi
+  register: partition_device
+
+- name: Fail if partition device not found
+  fail:
+    msg: "Nie znaleziono partycji dla {{ storage_disk_device }}. Sprawdź: lsblk"
+  when: partition_device.stdout == ""
+
+- name: Check if filesystem already exists
+  shell: |
+    blkid {{ partition_device.stdout }} | grep -q "TYPE" && echo "exists" || echo "not_exists"
+  register: fs_check
+  changed_when: false
+
+- name: Create ext4 filesystem
+  filesystem:
+    fstype: "{{ storage_filesystem }}"
+    dev: "{{ partition_device.stdout }}"
+    label: "{{ storage_label }}"
+    force: no
+  when: fs_check.stdout == "not_exists"
+
+- name: Ensure mount point exists
+  file:
+    path: "{{ storage_mount_point }}"
+    state: directory
+    mode: '0755'
+
+- name: Check if already mounted
+  mount:
+    path: "{{ storage_mount_point }}"
+  register: mount_check
+  failed_when: false
+  changed_when: false
+
+- name: Mount 2TB disk
+  mount:
+    path: "{{ storage_mount_point }}"
+    src: "LABEL={{ storage_label }}"
+    fstype: "{{ storage_filesystem }}"
+    opts: defaults,noatime
+    state: mounted
+
+- name: Create directories on 2TB disk
+  file:
+    path: "{{ item.source }}"
+    state: directory
+    owner: "{{ vps_user }}"
+    group: "{{ vps_user }}"
+    mode: '0755'
+  loop: "{{ storage_bind_mounts }}"
+
+- name: Create bind mount target directories
+  file:
+    path: "{{ item.target }}"
+    state: directory
+    owner: "{{ vps_user }}"
+    group: "{{ vps_user }}"
+    mode: '0755'
+  loop: "{{ storage_bind_mounts }}"
+
+- name: Add main mount to fstab
+  mount:
+    path: "{{ storage_mount_point }}"
+    src: "LABEL={{ storage_label }}"
+    fstype: "{{ storage_filesystem }}"
+    opts: defaults,noatime
+    state: present
+
+- name: Add bind mounts to fstab
+  lineinfile:
+    path: /etc/fstab
+    line: "{{ item.source }} {{ item.target }} none bind 0 0"
+    regexp: "^{{ item.source }}"
+    state: present
+  loop: "{{ storage_bind_mounts }}"
+  when: storage_bind_mounts is defined
+
+- name: Mount all bind mounts
+  mount:
+    path: "{{ item.target }}"
+    src: "{{ item.source }}"
+    fstype: none
+    opts: bind
+    state: mounted
+  loop: "{{ storage_bind_mounts }}"
+  when: storage_bind_mounts is defined
+
+- name: Enable fstrim.timer (if not already)
+  systemd:
+    name: fstrim.timer
+    enabled: yes
+    state: started
+

@@ -1,0 +1,46 @@
+---
+services:
+{% for instance in postgres_instances %}
+  postgres_{{ instance.name }}:
+    image: {{ postgres_image }}
+    container_name: postgres_{{ instance.name }}
+    restart: unless-stopped
+    shm_size: {{ instance.shm_size }}
+    environment:
+      POSTGRES_DB: {{ instance.db_name }}
+      POSTGRES_USER: {{ instance.db_user }}
+      POSTGRES_PASSWORD: {{ instance.db_password }}
+    command:
+      - "postgres"
+      - "-c" "shared_buffers={{ instance.shared_buffers }}"
+      - "-c" "effective_cache_size={{ instance.effective_cache_size }}"
+      - "-c" "work_mem={{ instance.work_mem }}"
+      - "-c" "maintenance_work_mem={{ instance.maintenance_work_mem }}"
+      - "-c" "wal_level=replica"
+      - "-c" "max_wal_size=4GB"
+      - "-c" "checkpoint_timeout=15min"
+      - "-c" "random_page_cost=1.1"
+      - "-c" "effective_io_concurrency=200"
+    volumes:
+      - {{ instance.data_dir }}:/var/lib/postgresql/data
+      - {{ instance.backups_dir }}:/backups
+    networks:
+      - {{ postgres_network }}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U {{ instance.db_user }}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+{% if instance.ports is defined and instance.ports | length > 0 %}
+    ports:
+{% for port in instance.ports %}
+      - "{{ port }}"
+{% endfor %}
+{% endif %}
+
+{% endfor %}
+
+networks:
+  {{ postgres_network }}:
+    name: {{ postgres_network }}
+
