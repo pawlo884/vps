@@ -12,15 +12,24 @@ services:
       POSTGRES_PASSWORD: {{ instance.db_password }}
     command:
       - "postgres"
-      - "-c" "shared_buffers={{ instance.shared_buffers }}"
-      - "-c" "effective_cache_size={{ instance.effective_cache_size }}"
-      - "-c" "work_mem={{ instance.work_mem }}"
-      - "-c" "maintenance_work_mem={{ instance.maintenance_work_mem }}"
-      - "-c" "wal_level=replica"
-      - "-c" "max_wal_size=4GB"
-      - "-c" "checkpoint_timeout=15min"
-      - "-c" "random_page_cost=1.1"
-      - "-c" "effective_io_concurrency=200"
+      - "-c"
+      - "shared_buffers={{ instance.shared_buffers }}"
+      - "-c"
+      - "effective_cache_size={{ instance.effective_cache_size }}"
+      - "-c"
+      - "work_mem={{ instance.work_mem }}"
+      - "-c"
+      - "maintenance_work_mem={{ instance.maintenance_work_mem }}"
+      - "-c"
+      - "wal_level=replica"
+      - "-c"
+      - "max_wal_size=4GB"
+      - "-c"
+      - "checkpoint_timeout=15min"
+      - "-c"
+      - "random_page_cost=1.1"
+      - "-c"
+      - "effective_io_concurrency=200"
     volumes:
       - {{ instance.data_dir }}:/var/lib/postgresql/data
       - {{ instance.backups_dir }}:/backups

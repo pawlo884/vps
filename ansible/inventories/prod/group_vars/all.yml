@@ -44,7 +44,7 @@ postgres_instances:
   - name: prod
     db_name: appdb
     db_user: appuser
-    db_password: change_me_strong  # ZMIEŃ przez --extra-vars lub vault!
+    db_password: change_me_strong # ZMIEŃ przez --extra-vars lub vault!
     data_dir: /srv/postgres/prod/data
     backups_dir: /srv/postgres/prod/backups
     shm_size: 1g
@@ -55,7 +55,7 @@ postgres_instances:
   - name: test
     db_name: testdb
     db_user: testuser
-    db_password: change_me_test  # ZMIEŃ przez --extra-vars lub vault!
+    db_password: change_me_test # ZMIEŃ przez --extra-vars lub vault!
     data_dir: /srv/postgres/test/data
     backups_dir: /srv/postgres/test/backups
     shm_size: 512m
@@ -106,10 +106,9 @@ monitoring_port: 19999
 
 # Storage - dysk 2TB NVMe
 # UWAGA: Ustaw storage_disk_device na właściwy dysk! Sprawdź przez: lsblk
-storage_configure: false  # Zmień na true gdy dysk będzie zamontowany
-storage_disk_device: ""   # np. /dev/nvme0n1 - ZMIEŃ przed uruchomieniem!
+storage_configure: true # Zmień na true gdy dysk będzie zamontowany
+storage_disk_device: "/dev/nvme0n1" # np. /dev/nvme0n1 - ZMIEŃ przed uruchomieniem!
 storage_mount_point: /mnt/data2tb
 storage_filesystem: ext4
 storage_label: data2tb
-
 # Bind mounts będą automatycznie utworzone z storage_bind_mounts w roli storage
