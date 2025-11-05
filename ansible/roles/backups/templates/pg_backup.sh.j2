@@ -12,7 +12,7 @@ STAMP=$(date +%F_%H-%M)
 BACKUP_FILE="${BACKUPS_DIR}/${DB_NAME}_${STAMP}.sql"
 
 # Check if container is running
-if ! docker ps --format '{{.Names}}' | grep -q "^${CONTAINER}$"; then
+if ! docker ps --format '{% raw %}{{.Names}}{% endraw %}' | grep -q "^${CONTAINER}$"; then
   echo "ERROR: Container ${CONTAINER} is not running. Skipping backup."
   exit 1
 fi

@@ -1,0 +1,35 @@
+---
+services:
+  {{ app_name }}:
+    build:
+      context: {{ app_dir }}
+      dockerfile: {{ app_dockerfile_path }}
+    image: {{ app_docker_image }}
+    container_name: {{ app_name }}
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "0.0.0.0:{{ app_expose_port }}:{{ app_port }}"
+    volumes:
+      - {{ app_dir }}:/app
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
+    networks:
+      - {{ app_docker_network }}
+    command: >
+      sh -c "
+        python manage.py migrate &&
+        python manage.py collectstatic --noinput &&
+        gunicorn nc.wsgi:application --bind 0.0.0.0:{{ app_port }} --workers 3
+      "
+
+volumes:
+  static_volume:
+  media_volume:
+
+networks:
+  {{ app_docker_network }}:
+    external: true
+    name: {{ app_docker_network }}
+

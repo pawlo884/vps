@@ -1,0 +1,20 @@
+# Django settings
+DEBUG={{ app_env_vars.DEBUG }}
+SECRET_KEY={{ app_env_vars.SECRET_KEY }}
+ALLOWED_HOSTS={{ app_env_vars.ALLOWED_HOSTS | default('*') }}
+
+# Database
+DATABASE_URL={{ app_env_vars.DATABASE_URL }}
+DB_HOST={{ app_db_host }}
+DB_PORT={{ app_db_port }}
+DB_NAME={{ app_db_name }}
+DB_USER={{ app_db_user }}
+DB_PASSWORD={{ app_db_password }}
+
+{% if app_env_vars is defined %}
+{% for key, value in app_env_vars.items() %}
+{% if key not in ['DEBUG', 'SECRET_KEY', 'DATABASE_URL', 'ALLOWED_HOSTS'] %}
+{{ key }}={{ value }}
+{% endif %}
+{% endfor %}
+{% endif %}

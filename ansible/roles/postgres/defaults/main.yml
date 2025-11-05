@@ -3,7 +3,7 @@
 # Each instance will run in separate container
 postgres_instances:
   - name: prod
-    db_name: appdb
+    db_name: nc_prod
     db_user: appuser
     db_password: change_me_strong  # Zmień przez --extra-vars lub vault!
     data_dir: /srv/postgres/prod/data
@@ -27,7 +27,7 @@ postgres_instances:
     maintenance_work_mem: 256MB
 
 # PostgreSQL image
-postgres_image: postgres:16
+postgres_image: postgres:17
 
 # Docker network for databases
 postgres_network: dbnet

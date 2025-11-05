@@ -1,0 +1,79 @@
+---
+- name: Ensure app directory exists
+  file:
+    path: "{{ app_dir }}"
+    state: directory
+    owner: "{{ app_user }}"
+    group: "{{ app_user }}"
+    mode: '0755'
+
+- name: Check if repository already exists
+  stat:
+    path: "{{ app_dir }}/.git"
+  register: git_dir
+
+- name: Clone or update repository
+  git:
+    repo: "{{ app_repo_url }}"
+    dest: "{{ app_dir }}"
+    version: "{{ app_repo_branch }}"
+    update: yes
+    force: yes
+  become_user: "{{ app_user }}"
+  when: app_repo_url != "" and git_dir.stat.exists == false
+  ignore_errors: yes
+  register: git_clone_result
+
+- name: Update repository if exists
+  git:
+    repo: "{{ app_repo_url }}"
+    dest: "{{ app_dir }}"
+    version: "{{ app_repo_branch }}"
+    update: yes
+  become_user: "{{ app_user }}"
+  when: app_repo_url != "" and git_dir.stat.exists == true
+
+- name: Warn if repository not found
+  debug:
+    msg: "Repository not found at {{ app_dir }}. Please clone manually: git clone {{ app_repo_url }} {{ app_dir }}"
+  when: app_repo_url != "" and git_dir.stat.exists == false and (git_clone_result is failed or git_clone_result.msg is defined)
+
+- name: Ensure docker-compose directory exists
+  file:
+    path: "{{ app_compose_dir }}"
+    state: directory
+    owner: "{{ app_user }}"
+    group: "{{ app_user }}"
+    mode: '0755'
+
+- name: Generate .env file
+  template:
+    src: app-env.j2
+    dest: "{{ app_compose_dir }}/.env"
+    owner: "{{ app_user }}"
+    group: "{{ app_user }}"
+    mode: '0600'
+
+- name: Generate docker-compose.yml
+  template:
+    src: docker-compose.yml.j2
+    dest: "{{ app_compose_dir }}/docker-compose.yml"
+    owner: "{{ app_user }}"
+    group: "{{ app_user }}"
+    mode: '0644'
+
+- name: Ensure Docker network exists (for app connection)
+  community.docker.docker_network:
+    name: "{{ app_docker_network }}"
+    state: present
+
+- name: Build and start application containers
+  community.docker.docker_compose_v2:
+    project_src: "{{ app_compose_dir }}"
+    state: present
+    build: always
+    pull: always
+  become_user: "{{ app_user }}"
+  environment:
+    COMPOSE_PROJECT_NAME: "{{ app_name }}"
+

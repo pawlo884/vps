@@ -1,6 +1,6 @@
 ---
 - name: Check if Netdata container already exists
-  command: docker ps -a --format '{{.Names}}' --filter "name={{ monitoring_container_name }}"
+  shell: docker ps -a --format '{{ '{{' }}.Names{{ '}}' }}' --filter "name={{ monitoring_container_name }}"
   register: netdata_exists
   changed_when: false
   failed_when: false

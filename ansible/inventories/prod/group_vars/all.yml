@@ -9,6 +9,7 @@ ufw_allowed_ports:
   - { port: 22, proto: tcp, comment: "SSH" }
   - { port: 80, proto: tcp, comment: "HTTP" }
   - { port: 443, proto: tcp, comment: "HTTPS" }
+  - { port: 8000, proto: tcp, comment: "Django app" }
   - { port: 19999, proto: tcp, comment: "Netdata monitoring" }
 
 # Podstawowe pakiety systemowe
@@ -42,7 +43,7 @@ journald_max_size: 200M
 # PostgreSQL w Dockerze
 postgres_instances:
   - name: prod
-    db_name: appdb
+    db_name: nc_prod
     db_user: appuser
     db_password: change_me_strong # ZMIEŃ przez --extra-vars lub vault!
     data_dir: /srv/postgres/prod/data
@@ -64,7 +65,7 @@ postgres_instances:
     work_mem: 16MB
     maintenance_work_mem: 256MB
 
-postgres_image: postgres:16
+postgres_image: postgres:17
 postgres_network: dbnet
 postgres_compose_dir: ~/stacks/db
 
@@ -91,7 +92,7 @@ backup_time: "02:00"
 postgres_backup_instances:
   - name: prod
     container: postgres_prod
-    db_name: appdb
+    db_name: nc_prod
     db_user: appuser
     backups_dir: /srv/postgres/prod/backups
   - name: test
@@ -112,3 +113,25 @@ storage_mount_point: /mnt/data2tb
 storage_filesystem: ext4
 storage_label: data2tb
 # Bind mounts będą automatycznie utworzone z storage_bind_mounts w roli storage
+
+# Django application deployment
+app_name: nc
+app_repo_url: "git@github.com:pawlo884/nc.git"
+app_repo_branch: main
+app_port: 8000
+app_expose_port: 8000
+app_dockerfile_path: Dockerfile.prod
+
+# Database connection (używa istniejącego kontenera PostgreSQL)
+app_db_host: postgres_prod
+app_db_port: 5432
+app_db_name: nc_prod
+app_db_user: appuser
+app_db_password: change_me_strong  # ZMIEŃ jeśli używasz innego hasła!
+
+# Environment variables dla aplikacji
+app_env_vars:
+  DEBUG: "False"
+  SECRET_KEY: "django-secret-key-2ab06a88456d96e5165fb09e5310406ddc3fdb45198b978ae79c7bf7f827a4d8"  # Wygenerowany automatycznie
+  ALLOWED_HOSTS: "*"
+  DATABASE_URL: "postgresql://appuser:change_me_strong@postgres_prod:5432/nc_prod"
