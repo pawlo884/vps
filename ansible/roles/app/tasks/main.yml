@@ -6,11 +6,13 @@
     owner: "{{ app_user }}"
     group: "{{ app_user }}"
     mode: '0755'
+  when: app_manage_repo | default(true)
 
 - name: Check if repository already exists
   stat:
     path: "{{ app_dir }}/.git"
   register: git_dir
+  when: app_manage_repo | default(true)
 
 - name: Clone or update repository
   git:
@@ -20,7 +22,7 @@
     update: yes
     force: yes
   become_user: "{{ app_user }}"
-  when: app_repo_url != "" and git_dir.stat.exists == false
+  when: app_manage_repo | default(true) and app_repo_url != "" and git_dir.stat.exists == false
   ignore_errors: yes
   register: git_clone_result
 
@@ -31,12 +33,12 @@
     version: "{{ app_repo_branch }}"
     update: yes
   become_user: "{{ app_user }}"
-  when: app_repo_url != "" and git_dir.stat.exists == true
+  when: app_manage_repo | default(true) and app_repo_url != "" and git_dir.stat.exists == true
 
 - name: Warn if repository not found
   debug:
     msg: "Repository not found at {{ app_dir }}. Please clone manually: git clone {{ app_repo_url }} {{ app_dir }}"
-  when: app_repo_url != "" and git_dir.stat.exists == false and (git_clone_result is failed or git_clone_result.msg is defined)
+  when: app_manage_repo | default(true) and app_repo_url != "" and git_dir.stat.exists == false and (git_clone_result is failed or git_clone_result.msg is defined)
 
 - name: Ensure docker-compose directory exists
   file:
@@ -49,10 +51,12 @@
 - name: Generate .env file
   template:
     src: app-env.j2
-    dest: "{{ app_compose_dir }}/.env"
+    dest: "{{ app_compose_dir }}/{{ app_env_file }}"
     owner: "{{ app_user }}"
     group: "{{ app_user }}"
     mode: '0600'
+    force: false
+  when: app_manage_env | default(false)
 
 - name: Generate docker-compose.yml
   template:
@@ -73,6 +77,8 @@
     state: present
     build: always
     pull: always
+    recreate: always
+    remove_orphans: true
   become_user: "{{ app_user }}"
   environment:
     COMPOSE_PROJECT_NAME: "{{ app_name }}"

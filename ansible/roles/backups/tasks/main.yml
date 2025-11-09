@@ -1,4 +1,28 @@
 ---
+- name: Initialize list of PostgreSQL backup targets
+  set_fact:
+    postgres_backup_targets: []
+
+- name: Append explicitly configured backup instances
+  set_fact:
+    postgres_backup_targets: "{{ postgres_backup_targets + postgres_backup_instances }}"
+  when:
+    - backups_enabled | default(true)
+    - (postgres_backup_instances | default([])) | length > 0
+
+- name: Append postgres role instances to backup targets
+  set_fact:
+    postgres_backup_targets: "{{ postgres_backup_targets + [ {
+      'name': item.name,
+      'container': 'postgres_' ~ item.name,
+      'db_name': item.db_name,
+      'db_user': item.db_user,
+      'backups_dir': item.backups_dir
+    } ] }}"
+  loop: "{{ postgres_instances | default([]) }}"
+  when:
+    - backups_enabled | default(true)
+
 - name: Ensure backup script directory exists
   file:
     path: /usr/local/bin
@@ -10,7 +34,7 @@
     src: pg_backup.sh.j2
     dest: "/usr/local/bin/pg_backup_{{ item.name }}.sh"
     mode: '0755'
-  loop: "{{ postgres_backup_instances }}"
+  loop: "{{ postgres_backup_targets }}"
   when: backups_enabled | default(true)
 
 - name: Ensure backup directories exist and have correct permissions
@@ -20,7 +44,7 @@
     owner: "{{ vps_user }}"
     group: "{{ vps_user }}"
     mode: '0755'
-  loop: "{{ postgres_backup_instances }}"
+  loop: "{{ postgres_backup_targets }}"
   when: backups_enabled | default(true)
 
 - name: Parse backup time
@@ -35,6 +59,6 @@
     hour: "{{ backup_hour }}"
     job: "/usr/local/bin/pg_backup_{{ item.name }}.sh >> /var/log/pg_backup_{{ item.name }}.log 2>&1"
     user: "{{ vps_user }}"
-  loop: "{{ postgres_backup_instances }}"
+  loop: "{{ postgres_backup_targets }}"
   when: backups_enabled | default(true)
 
