@@ -1,4 +1,5 @@
 ---
+{% set minio_setup_enabled = app_minio_setup_enabled | default(true) %}
 services:
   static-init:
     build:
@@ -88,7 +89,9 @@ services:
       - postgres
       - redis
       - static-init
+{% if minio_setup_enabled %}
       - minio-setup
+{% endif %}
     user: "{{ app_user_uid | default('1001:1001') }}"
 
   nginx:
@@ -148,8 +151,10 @@ services:
         condition: service_healthy
       web:
         condition: service_started
+{% if minio_setup_enabled %}
       minio-setup:
         condition: service_completed_successfully
+{% endif %}
     restart: always
     networks:
       - {{ app_docker_network }}
@@ -194,8 +199,10 @@ services:
         condition: service_healthy
       web:
         condition: service_started
+{% if minio_setup_enabled %}
       minio-setup:
         condition: service_completed_successfully
+{% endif %}
     restart: always
     networks:
       - {{ app_docker_network }}
@@ -238,8 +245,10 @@ services:
         condition: service_healthy
       web:
         condition: service_started
+{% if minio_setup_enabled %}
       minio-setup:
         condition: service_completed_successfully
+{% endif %}
     restart: always
     networks:
       - {{ app_docker_network }}
@@ -301,7 +310,9 @@ services:
       - redis
       - celery-default
       - celery-import
+{% if minio_setup_enabled %}
       - minio-setup
+{% endif %}
     networks:
       - {{ app_docker_network }}
     user: "{{ app_user_uid | default('1001:1001') }}"
@@ -322,6 +333,7 @@ services:
     networks:
       - {{ app_docker_network }}
 
+{% if minio_setup_enabled %}
   minio-setup:
     image: {{ app_minio_client_image | default('minio/mc:latest') }}
     depends_on:
@@ -339,6 +351,7 @@ services:
       "
     networks:
       - {{ app_docker_network }}
+{% endif %}
 
 volumes:
   redis_data:

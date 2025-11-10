@@ -65,7 +65,7 @@ postgres_instances:
     work_mem: 16MB
     maintenance_work_mem: 256MB
 
-postgres_image: postgres:17
+postgres_image: postgres:18
 postgres_network: dbnet
 postgres_compose_dir: ~/stacks/db
 
@@ -126,6 +126,7 @@ app_minio_region: us-east-1
 app_minio_addressing: path
 app_minio_verify: "false"
 app_minio_container_name: minio
+app_minio_setup_enabled: false
 app_env_file: ".env.prod"
 app_manage_env: false
 app_manage_repo: false

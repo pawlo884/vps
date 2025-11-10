@@ -27,7 +27,7 @@ postgres_instances:
     maintenance_work_mem: 256MB
 
 # PostgreSQL image
-postgres_image: postgres:17
+postgres_image: postgres:18
 
 # Docker network for databases
 postgres_network: dbnet

@@ -37,3 +37,6 @@ app_docker_network: dbnet
 # Expose port directly (bez reverse proxy)
 app_expose_port: 8000
 
+# Minio setup
+app_minio_setup_enabled: true
+

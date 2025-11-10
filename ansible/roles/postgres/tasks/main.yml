@@ -23,7 +23,7 @@
 
 - name: Set postgres compose directory
   set_fact:
-    postgres_compose_dir_expanded: "{{ postgres_compose_dir | default('/home/' + vps_user + '/stacks/db') }}"
+    postgres_compose_dir_expanded: "{{ (postgres_compose_dir | default('/home/' + vps_user + '/stacks/db')) | regex_replace('^~', '/home/' + vps_user) }}"
 
 - name: Ensure docker-compose directory exists
   file:
