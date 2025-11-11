@@ -10,6 +10,9 @@ services:
       POSTGRES_DB: "{{ instance.db_name }}"
       POSTGRES_USER: "{{ instance.db_user }}"
       POSTGRES_PASSWORD: "{{ instance.db_password }}"
+{% if instance.pgdata is defined %}
+      PGDATA: "{{ instance.pgdata }}"
+{% endif %}
     command:
       - postgres
       - -c

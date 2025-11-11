@@ -42,28 +42,20 @@ journald_max_size: 200M
 
 # PostgreSQL w Dockerze
 postgres_instances:
-  - name: prod
-    db_name: nc_prod
-    db_user: appuser
-    db_password: change_me_strong # ZMIEŃ przez --extra-vars lub vault!
-    data_dir: /srv/postgres/prod/data
-    backups_dir: /srv/postgres/prod/backups
-    shm_size: 1g
-    shared_buffers: 4GB
-    effective_cache_size: 10GB
-    work_mem: 32MB
-    maintenance_work_mem: 512MB
-  - name: test
-    db_name: testdb
-    db_user: testuser
-    db_password: change_me_test # ZMIEŃ przez --extra-vars lub vault!
-    data_dir: /srv/postgres/test/data
-    backups_dir: /srv/postgres/test/backups
+  - name: shared
+    db_name: shared
+    db_user: shareduser
+    db_password: change_me_shared # Zmień na docelowe
+    data_dir: /srv/postgres/shared/data
+    backups_dir: /srv/postgres/shared/backups
     shm_size: 512m
-    shared_buffers: 2GB
-    effective_cache_size: 6GB
-    work_mem: 16MB
-    maintenance_work_mem: 256MB
+    shared_buffers: 1GB
+    effective_cache_size: 3GB
+    work_mem: 8MB
+    maintenance_work_mem: 128MB
+    ports:
+      - "5434:5432"
+    pgdata: /var/lib/postgresql/data/pgdata
 
 postgres_image: postgres:18
 postgres_network: dbnet
