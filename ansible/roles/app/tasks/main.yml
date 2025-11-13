@@ -48,6 +48,11 @@
     group: "{{ app_user }}"
     mode: '0755'
 
+- name: Merge app_env_vars with secrets
+  set_fact:
+    app_env_vars: "{{ app_env_vars | default({}) | combine(app_env_vars_secrets | default({})) }}"
+  when: app_env_vars_secrets is defined
+
 - name: Generate .env file
   template:
     src: app-env.j2

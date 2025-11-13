@@ -1,4 +1,14 @@
 ---
+- name: Merge postgres_instances with passwords from secrets
+  set_fact:
+    postgres_instances: "{{ postgres_instances | map('combine', postgres_instances_secrets | default([]) | selectattr('name', 'equalto', item.name) | first | default({})) | list }}"
+  vars:
+    postgres_instances_secrets: "{{ postgres_instances_secrets | default([]) }}"
+  when: 
+    - postgres_instances is defined
+    - postgres_instances | default([]) | length > 0
+    - postgres_instances_secrets is defined
+
 - name: Ensure PostgreSQL directories exist
   file:
     path: "{{ item.data_dir }}"

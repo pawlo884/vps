@@ -60,11 +60,12 @@ docker_log_max_file: 3
 journald_max_size: 200M
 
 # PostgreSQL w Dockerze
+# UWAGA: Hasła (db_password) są w secrets.yml
 postgres_instances:
   - name: prod
     db_name: nc_prod
     db_user: appuser
-    db_password: change_me_strong # ZMIEŃ przez --extra-vars lub vault!
+    # db_password w secrets.yml
     data_dir: /srv/postgres/prod/data
     backups_dir: /srv/postgres/prod/backups
     shm_size: 1g
@@ -75,7 +76,7 @@ postgres_instances:
   - name: test
     db_name: testdb
     db_user: testuser
-    db_password: change_me_test # ZMIEŃ przez --extra-vars lub vault!
+    # db_password w secrets.yml
     data_dir: /srv/postgres/test/data
     backups_dir: /srv/postgres/test/backups
     shm_size: 512m
@@ -108,17 +109,8 @@ backups_enabled: true
 backup_retention_days: 7
 backup_time: "02:00"
 
-postgres_backup_instances:
-  - name: prod
-    container: postgres_prod
-    db_name: nc_prod
-    db_user: appuser
-    backups_dir: /srv/postgres/prod/backups
-  - name: test
-    container: postgres_test
-    db_name: testdb
-    db_user: testuser
-    backups_dir: /srv/postgres/test/backups
+# Konfiguracja backupów PostgreSQL - przeniesiona do secrets.yml
+# postgres_backup_instances jest w secrets.yml
 
 # Monitoring (Netdata)
 monitoring_install: true
@@ -131,7 +123,8 @@ storage_disk_device: "/dev/nvme0n1" # np. /dev/nvme0n1 - ZMIEŃ przed uruchomien
 storage_mount_point: /mnt/data2tb
 storage_filesystem: ext4
 storage_label: data2tb
-# Bind mounts będą automatycznie utworzone z storage_bind_mounts w roli storage
+# Bind mounts są zdefiniowane w roli storage/defaults/main.yml
+# Możesz nadpisać storage_bind_mounts tutaj jeśli potrzebujesz innych ścieżek
 
 # Django application deployment
 app_name: nc
@@ -146,11 +139,12 @@ app_db_host: postgres_prod
 app_db_port: 5432
 app_db_name: nc_prod
 app_db_user: appuser
-app_db_password: change_me_strong  # ZMIEŃ jeśli używasz innego hasła!
+# app_db_password w secrets.yml
 
 # Environment variables dla aplikacji
+# UWAGA: SECRET_KEY i DATABASE_URL są w secrets.yml
 app_env_vars:
   DEBUG: "False"
-  SECRET_KEY: "django-secret-key-2ab06a88456d96e5165fb09e5310406ddc3fdb45198b978ae79c7bf7f827a4d8"  # Wygenerowany automatycznie
+  # SECRET_KEY w secrets.yml
   ALLOWED_HOSTS: "*"
-  DATABASE_URL: "postgresql://appuser:change_me_strong@postgres_prod:5432/nc_prod"
+  # DATABASE_URL w secrets.yml
