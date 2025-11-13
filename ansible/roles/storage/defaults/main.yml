@@ -11,18 +11,17 @@ storage_label: data2tb
 
 # Bind mounts configuration
 storage_bind_mounts:
-  # PostgreSQL
-  - source: /mnt/data2tb/postgres/prod/data
-    target: /srv/postgres/prod/data
-  - source: /mnt/data2tb/postgres/prod/backups
-    target: /srv/postgres/prod/backups
-  - source: /mnt/data2tb/postgres/test/data
-    target: /srv/postgres/test/data
-  - source: /mnt/data2tb/postgres/test/backups
-    target: /srv/postgres/test/backups
+  # PostgreSQL - tylko data (backupy na sda)
+  - source: /mnt/data2tb/postgres/shared/data
+    target: /srv/postgres/shared/data
   # Storage aplikacji
   - source: /mnt/data2tb/storage/app_uploads
     target: /srv/volumes/app_uploads
   - source: /mnt/data2tb/storage/app_data
     target: /srv/volumes/app_data
+  # MinIO data
+  - source: /mnt/data2tb/minio/data
+    target: /srv/minio/data
+  # Docker volumes dla aplikacji (nc_*) - już przeniesione przez docker-compose.yml
+  # Volumes są montowane bezpośrednio w docker-compose.prod.yml jako bind mounts
 

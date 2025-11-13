@@ -1,13 +1,19 @@
 ---
 - name: Merge postgres_instances with passwords from secrets
   set_fact:
-    postgres_instances: "{{ postgres_instances | map('combine', postgres_instances_secrets | default([]) | selectattr('name', 'equalto', item.name) | first | default({})) | list }}"
-  vars:
-    postgres_instances_secrets: "{{ postgres_instances_secrets | default([]) }}"
+    postgres_instances_merged: "{{ postgres_instances_merged | default([]) + [item | combine((postgres_instances_secrets | default([]) | selectattr('name', 'equalto', item.name) | first | default({})))] }}"
+  loop: "{{ postgres_instances }}"
+  loop_control:
+    label: "{{ item.name }}"
   when: 
     - postgres_instances is defined
     - postgres_instances | default([]) | length > 0
     - postgres_instances_secrets is defined
+
+- name: Set merged postgres_instances
+  set_fact:
+    postgres_instances: "{{ postgres_instances_merged }}"
+  when: postgres_instances_merged is defined
 
 - name: Ensure PostgreSQL directories exist
   file:
