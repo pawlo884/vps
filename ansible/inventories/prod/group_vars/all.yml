@@ -26,13 +26,9 @@ wifi_static_nameservers:
   - "8.8.8.8"
 
 # Lista sieci WiFi (wyższy priority = wyższy priorytet)
-wifi_networks:
-  - ssid: "Loki"
-    password: "staropolanka2000"
-    priority: 100  # Wyższy priorytet (będzie pierwsza)
-  - ssid: "Thor"
-    password: "staropolanka2000"
-    priority: 50   # Niższy priorytet (backup)
+# UWAGA: Hasła są w secrets.yml (nie commitowany, w .gitignore)
+# Skopiuj secrets.yml.example do secrets.yml i uzupełnij hasła
+# wifi_networks jest definiowane w secrets.yml
 
 # Podstawowe pakiety systemowe
 base_packages:

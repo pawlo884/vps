@@ -189,6 +189,19 @@ Po zmianie sprawdź połączenie:
 ./scripts/check-vps.sh
 ```
 
+### Sekrety i hasła
+
+**WAŻNE:** Hasła i sekrety są w osobnym pliku, który NIE jest commitowany:
+- `ansible/inventories/prod/group_vars/secrets.yml` - prawdziwe hasła (w .gitignore)
+- `ansible/inventories/prod/group_vars/secrets.yml.example` - przykład (commitowany)
+
+**Pierwsza konfiguracja:**
+```bash
+cd ansible/inventories/prod/group_vars
+cp secrets.yml.example secrets.yml
+# Edytuj secrets.yml i uzupełnij hasła
+```
+
 ### Zmiany ustawień (porty, pakiety, itp.)
 
 Edytuj `ansible/inventories/prod/group_vars/all.yml`:
