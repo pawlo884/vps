@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Ogólne ustawienia VPS
 vps_hostname: vps
 vps_user: pawel
@@ -141,3 +142,143 @@ app_env_vars:
   SECRET_KEY: "django-secret-key-2ab06a88456d96e5165fb09e5310406ddc3fdb45198b978ae79c7bf7f827a4d8"  # Wygenerowany automatycznie
   ALLOWED_HOSTS: "*"
   DATABASE_URL: "postgresql://pawel:Relisys17!@postgres:5432/default"
+=======
+# Ogólne ustawienia VPS
+vps_hostname: vps
+vps_user: pawel
+
+# Firewall
+ufw_default_deny_incoming: true
+ufw_default_allow_outgoing: true
+ufw_allowed_ports:
+  - { port: 22, proto: tcp, comment: "SSH" }
+  - { port: 80, proto: tcp, comment: "HTTP" }
+  - { port: 443, proto: tcp, comment: "HTTPS" }
+  - { port: 8000, proto: tcp, comment: "Django app" }
+  - { port: 19999, proto: tcp, comment: "Netdata monitoring" }
+
+# Podstawowe pakiety systemowe
+base_packages:
+  - git
+  - curl
+  - wget
+  - htop
+  - ufw
+  - fail2ban
+  - unattended-upgrades
+  - python3-venv
+  - python3-pip
+  - build-essential
+  - nvme-cli
+
+# Docker (opcjonalne)
+docker_install: true
+
+# PostgreSQL client (jeśli będzie potrzebny)
+postgres_client_install: false
+
+# Nginx (ogólna konfiguracja)
+nginx_install: false
+
+# Hardening (w common role)
+sysctl_swappiness: 10
+docker_log_max_size: 50m
+docker_log_max_file: 3
+journald_max_size: 200M
+
+# PostgreSQL w Dockerze
+postgres_instances:
+  - name: prod
+    db_name: nc_prod
+    db_user: appuser
+    db_password: change_me_strong # ZMIEŃ przez --extra-vars lub vault!
+    data_dir: /srv/postgres/prod/data
+    backups_dir: /srv/postgres/prod/backups
+    shm_size: 1g
+    shared_buffers: 4GB
+    effective_cache_size: 10GB
+    work_mem: 32MB
+    maintenance_work_mem: 512MB
+  - name: test
+    db_name: testdb
+    db_user: testuser
+    db_password: change_me_test # ZMIEŃ przez --extra-vars lub vault!
+    data_dir: /srv/postgres/test/data
+    backups_dir: /srv/postgres/test/backups
+    shm_size: 512m
+    shared_buffers: 2GB
+    effective_cache_size: 6GB
+    work_mem: 16MB
+    maintenance_work_mem: 256MB
+
+postgres_image: postgres:17
+postgres_network: dbnet
+postgres_compose_dir: ~/stacks/db
+
+# Caddy reverse proxy
+proxy_install: true
+proxy_image: caddy:2
+proxy_compose_dir: ~/stacks/proxy
+proxy_network: proxy
+proxy_http_port: 80
+proxy_https_port: 443
+
+# Przykładowa konfiguracja domen (dostosuj pod siebie):
+# proxy_domains:
+#   - domain: example.com
+#     email: admin@example.com
+#     backend: app:8000
+proxy_domains: []
+
+# Backupy PostgreSQL
+backups_enabled: true
+backup_retention_days: 7
+backup_time: "02:00"
+
+postgres_backup_instances:
+  - name: prod
+    container: postgres_prod
+    db_name: nc_prod
+    db_user: appuser
+    backups_dir: /srv/postgres/prod/backups
+  - name: test
+    container: postgres_test
+    db_name: testdb
+    db_user: testuser
+    backups_dir: /srv/postgres/test/backups
+
+# Monitoring (Netdata)
+monitoring_install: true
+monitoring_port: 19999
+
+# Storage - dysk 2TB NVMe
+# UWAGA: Ustaw storage_disk_device na właściwy dysk! Sprawdź przez: lsblk
+storage_configure: true # Zmień na true gdy dysk będzie zamontowany
+storage_disk_device: "/dev/nvme0n1" # np. /dev/nvme0n1 - ZMIEŃ przed uruchomieniem!
+storage_mount_point: /mnt/data2tb
+storage_filesystem: ext4
+storage_label: data2tb
+# Bind mounts będą automatycznie utworzone z storage_bind_mounts w roli storage
+
+# Django application deployment
+app_name: nc
+app_repo_url: "git@github.com:pawlo884/nc.git"
+app_repo_branch: main
+app_port: 8000
+app_expose_port: 8000
+app_dockerfile_path: Dockerfile.prod
+
+# Database connection (używa istniejącego kontenera PostgreSQL)
+app_db_host: postgres_prod
+app_db_port: 5432
+app_db_name: nc_prod
+app_db_user: appuser
+app_db_password: change_me_strong  # ZMIEŃ jeśli używasz innego hasła!
+
+# Environment variables dla aplikacji
+app_env_vars:
+  DEBUG: "False"
+  SECRET_KEY: "django-secret-key-2ab06a88456d96e5165fb09e5310406ddc3fdb45198b978ae79c7bf7f827a4d8"  # Wygenerowany automatycznie
+  ALLOWED_HOSTS: "*"
+  DATABASE_URL: "postgresql://appuser:change_me_strong@postgres_prod:5432/nc_prod"
+>>>>>>> 5b00aab (miniO)

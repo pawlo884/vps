@@ -4,4 +4,7 @@ monitoring_install: true
 monitoring_image: netdata/netdata
 monitoring_port: 19999
 monitoring_container_name: netdata
+monitoring_config_path: /var/lib/docker/volumes/netdata-config/_data
+monitoring_nvme_devices:
+  - /dev/nvme0n1
 

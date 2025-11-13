@@ -1,0 +1,9 @@
+jobs:
+  - name: nvme
+    devices:
+{% for device in monitoring_nvme_devices %}
+      - {{ device }}
+{% endfor %}
+    update_every: 10
+
+

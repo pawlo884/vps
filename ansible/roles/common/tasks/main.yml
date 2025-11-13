@@ -114,3 +114,21 @@
     name: fstrim.timer
     enabled: yes
     state: started
+
+# Disable swap
+- name: Disable swap
+  shell: swapoff -a
+  ignore_errors: yes
+  changed_when: false
+
+- name: Remove swap entry from fstab
+  lineinfile:
+    path: /etc/fstab
+    regexp: '^.*swap.*$'
+    state: absent
+
+- name: Remove swap file if exists
+  file:
+    path: /swap.img
+    state: absent
+  ignore_errors: yes

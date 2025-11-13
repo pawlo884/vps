@@ -9,6 +9,18 @@
   command: docker rm -f {{ monitoring_container_name }}
   when: netdata_exists.stdout != ""
 
+- name: Ensure Netdata go.d directory exists
+  file:
+    path: "{{ monitoring_config_path }}/go.d"
+    state: directory
+    mode: '0755'
+
+- name: Configure Netdata nvme monitoring
+  template:
+    src: nvme.conf.j2
+    dest: "{{ monitoring_config_path }}/go.d/nvme.conf"
+    mode: '0644'
+
 - name: Start Netdata container
   command: >
     docker run -d
