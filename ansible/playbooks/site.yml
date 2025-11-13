@@ -3,6 +3,7 @@
   vars_files: []
   roles:
     - common
+    - wifi
     - web
     - db
     - storage

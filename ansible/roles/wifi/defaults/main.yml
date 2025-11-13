@@ -1,0 +1,19 @@
+---
+# WiFi configuration
+wifi_configure: false  # Zmień na true aby włączyć konfigurację WiFi
+wifi_interface: "wlan0"  # Nazwa interfejsu WiFi (sprawdź przez: ip link show)
+wifi_ssid: ""  # Nazwa sieci WiFi (SSID)
+wifi_password: ""  # Hasło WiFi (WPA2)
+wifi_priority: 100  # Priorytet połączenia (wyższy = preferowany)
+wifi_dhcp: true  # Użyj DHCP (true) lub statycznego IP (false)
+
+# Statyczny IP (jeśli wifi_dhcp: false)
+wifi_static_address: ""
+wifi_static_gateway: ""
+wifi_static_nameservers:
+  - "1.1.1.1"
+  - "8.8.8.8"
+
+# Netplan file name
+wifi_netplan_file: "02-wifi.yaml"
+
