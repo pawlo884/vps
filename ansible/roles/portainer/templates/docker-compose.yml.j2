@@ -1,0 +1,18 @@
+services:
+  portainer:
+    image: {{ portainer_image }}
+    container_name: {{ portainer_container_name }}
+    restart: unless-stopped
+    ports:
+      - "{{ portainer_port }}:9000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - {{ portainer_data_dir }}:/data
+    networks:
+      - {{ portainer_network }}
+
+networks:
+  {{ portainer_network }}:
+    name: {{ portainer_network }}
+    driver: bridge
+

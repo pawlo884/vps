@@ -10,6 +10,7 @@ ufw_allowed_ports:
   - { port: 80, proto: tcp, comment: "HTTP" }
   - { port: 443, proto: tcp, comment: "HTTPS" }
   - { port: 8000, proto: tcp, comment: "Django app" }
+  - { port: 9000, proto: tcp, comment: "Portainer" }
   - { port: 19999, proto: tcp, comment: "Netdata monitoring" }
 
 # WiFi configuration
@@ -59,6 +60,11 @@ docker_log_max_size: 50m
 docker_log_max_file: 3
 journald_max_size: 200M
 
+# Docker maintenance - automatyczne czyszczenie
+docker_cleanup_enabled: true
+docker_cleanup_schedule: "0 3 * * 0"  # Co niedzielę o 3:00 (format cron: minute hour day month weekday)
+docker_cleanup_prune_all: false  # true = usuwa wszystkie nieużywane obrazy, false = tylko dangling
+
 # PostgreSQL w Dockerze
 # UWAGA: Hasła (db_password) są w secrets.yml
 postgres_instances:
@@ -107,6 +113,16 @@ backup_time: "02:00"
 # Monitoring (Netdata)
 monitoring_install: true
 monitoring_port: 19999
+
+# Portainer
+portainer_install: true
+portainer_takeover: true  # Przejęcie istniejącego Portainera pod zarząd Ansible
+portainer_container_name: portainer
+portainer_port: 9000
+portainer_image: portainer/portainer-ce:latest
+portainer_data_dir: /srv/portainer/data  # Na sda (system)
+portainer_compose_dir: ~/stacks/portainer
+portainer_network: portainer_network
 
 # Storage - dysk 2TB NVMe
 # UWAGA: Ustaw storage_disk_device na właściwy dysk! Sprawdź przez: lsblk

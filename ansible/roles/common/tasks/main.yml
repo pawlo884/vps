@@ -132,3 +132,57 @@
     path: /swap.img
     state: absent
   ignore_errors: yes
+
+# Docker cleanup - automatyczne czyszczenie starych obrazów
+- name: Parse docker cleanup schedule
+  set_fact:
+    docker_cleanup_minute: "{{ docker_cleanup_schedule.split()[0] }}"
+    docker_cleanup_hour: "{{ docker_cleanup_schedule.split()[1] }}"
+    docker_cleanup_day: "{{ docker_cleanup_schedule.split()[2] }}"
+    docker_cleanup_month: "{{ docker_cleanup_schedule.split()[3] }}"
+    docker_cleanup_weekday: "{{ docker_cleanup_schedule.split()[4] }}"
+  when: docker_cleanup_enabled | default(true)
+
+- name: Create Docker cleanup script
+  copy:
+    dest: /usr/local/bin/docker_cleanup.sh
+    content: |
+      #!/bin/bash
+      # Automatyczne czyszczenie obrazów Docker
+      # Usuwa dangling images i opcjonalnie wszystkie nieużywane obrazy
+      
+      LOG_FILE="/var/log/docker_cleanup.log"
+      echo "$(date): Rozpoczynam czyszczenie Docker..." >> "$LOG_FILE"
+      
+      {% if docker_cleanup_prune_all | default(false) %}
+      # Usuń wszystkie nieużywane obrazy (ostrożnie!)
+      docker image prune -a -f >> "$LOG_FILE" 2>&1
+      {% else %}
+      # Usuń tylko dangling images (bezpieczniejsze)
+      docker image prune -f >> "$LOG_FILE" 2>&1
+      {% endif %}
+      
+      # Usuń nieużywane kontenery
+      docker container prune -f >> "$LOG_FILE" 2>&1
+      
+      # Usuń nieużywane volumes (ostrożnie - może usuwać dane!)
+      # docker volume prune -f >> "$LOG_FILE" 2>&1
+      
+      # Usuń nieużywane sieci
+      docker network prune -f >> "$LOG_FILE" 2>&1
+      
+      echo "$(date): Czyszczenie Docker zakończone" >> "$LOG_FILE"
+    mode: '0755'
+  when: docker_cleanup_enabled | default(true)
+
+- name: Ensure Docker cleanup cron job
+  cron:
+    name: "Docker cleanup - czyszczenie starych obrazów"
+    minute: "{{ docker_cleanup_minute }}"
+    hour: "{{ docker_cleanup_hour }}"
+    day: "{{ docker_cleanup_day }}"
+    month: "{{ docker_cleanup_month }}"
+    weekday: "{{ docker_cleanup_weekday }}"
+    job: "/usr/local/bin/docker_cleanup.sh"
+    user: root
+  when: docker_cleanup_enabled | default(true)

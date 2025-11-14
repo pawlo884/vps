@@ -1,0 +1,57 @@
+---
+- name: Check if Portainer container already exists
+  shell: docker ps -a --format '{{ '{{' }}.Names{{ '}}' }}' --filter "name={{ portainer_container_name }}"
+  register: portainer_exists
+  changed_when: false
+  failed_when: false
+
+- name: Check if Portainer is running
+  shell: docker ps --format '{{ '{{' }}.Names{{ '}}' }}' --filter "name={{ portainer_container_name }}"
+  register: portainer_running
+  changed_when: false
+  failed_when: false
+  when: portainer_exists.stdout != ""
+
+- name: Display existing Portainer status
+  debug:
+    msg: "Portainer już istnieje i {{ 'działa' if portainer_running.stdout != '' else 'jest zatrzymany' }}. Ustaw portainer_takeover: true w all.yml aby przejąć zarząd."
+  when: portainer_exists.stdout != "" and not portainer_takeover | default(false)
+
+- name: Stop and remove existing Portainer (if takeover enabled)
+  command: docker rm -f {{ portainer_container_name }}
+  when: 
+    - portainer_exists.stdout != ""
+    - portainer_takeover | default(false)
+
+- name: Set portainer compose directory
+  set_fact:
+    portainer_compose_dir_expanded: "{{ (portainer_compose_dir | default('/home/' + vps_user + '/stacks/portainer')) | regex_replace('^~', '/home/' + vps_user) }}"
+
+- name: Ensure Portainer directories exist
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ vps_user }}"
+    group: "{{ vps_user }}"
+    mode: '0755'
+  loop:
+    - "{{ portainer_compose_dir_expanded }}"
+    - "{{ portainer_data_dir }}"
+
+- name: Generate docker-compose.yml for Portainer
+  template:
+    src: docker-compose.yml.j2
+    dest: "{{ portainer_compose_dir_expanded }}/docker-compose.yml"
+    owner: "{{ vps_user }}"
+    group: "{{ vps_user }}"
+    mode: "0644"
+
+- name: Start Portainer container
+  community.docker.docker_compose_v2:
+    project_src: "{{ portainer_compose_dir_expanded }}"
+    state: present
+  become_user: "{{ vps_user }}"
+  environment:
+    COMPOSE_PROJECT_NAME: portainer
+  when: portainer_install | default(true)
+
