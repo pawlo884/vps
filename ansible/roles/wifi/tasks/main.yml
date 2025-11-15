@@ -55,6 +55,18 @@
   command: netplan apply
   when: netplan_config.changed
 
+- name: Set WiFi connection priorities in NetworkManager
+  command: >
+    nmcli connection modify "netplan-{{ wifi_interface }}-{{ item.ssid }}" connection.autoconnect-priority {{ item.priority }}
+  loop: "{{ wifi_networks }}"
+  loop_control:
+    label: "{{ item.ssid }} (priority {{ item.priority }})"
+  when: 
+    - wifi_networks is defined
+    - wifi_networks | length > 0
+  ignore_errors: yes
+  changed_when: false
+
 - name: Wait for WiFi connection
   wait_for:
     host: 8.8.8.8

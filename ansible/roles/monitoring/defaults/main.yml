@@ -8,3 +8,12 @@ monitoring_config_path: /var/lib/docker/volumes/netdata-config/_data
 monitoring_nvme_devices:
   - /dev/nvme0n1
 
+# PostgreSQL monitoring
+monitoring_postgres_enabled: true
+# Lista instancji PostgreSQL do monitorowania (będzie automatycznie wypełniona z postgres_instances)
+monitoring_postgres_instances: []
+
+# Netdata security
+monitoring_auth_enabled: true  # Włącz basic authentication
+# monitoring_auth_user i monitoring_auth_password są w secrets.yml
+

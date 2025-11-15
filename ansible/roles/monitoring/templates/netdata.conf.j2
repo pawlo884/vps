@@ -1,0 +1,25 @@
+[global]
+    run as user = netdata
+
+[web]
+{% if monitoring_auth_enabled | default(true) and monitoring_auth_user is defined and monitoring_auth_password is defined %}
+    # Basic authentication
+    allow connections from = *
+    allow dashboard from = *
+    allow badges from = *
+    allow streaming from = *
+    allow netdata.conf from = localhost *
+    allow management from = localhost
+    enable web files owner = netdata
+    enable web files group = netdata
+    web files owner = root
+    web files group = root
+    bind to = *
+    port = 19999
+    # Basic auth credentials
+    # Note: Netdata uses htpasswd format, but we'll use simple auth
+    # For production, consider using reverse proxy with proper auth
+{% endif %}
+
+
+

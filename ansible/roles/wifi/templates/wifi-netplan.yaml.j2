@@ -17,7 +17,7 @@ network:
 {% endfor %}
 {% endif %}
       access-points:
-{% for network in wifi_networks %}
+{% for network in wifi_networks | sort(attribute='priority', reverse=true) %}
         "{{ network.ssid }}":
           password: "{{ network.password }}"
 {% endfor %}

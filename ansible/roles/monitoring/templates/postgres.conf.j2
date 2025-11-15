@@ -1,0 +1,9 @@
+jobs:
+{% for instance in monitoring_postgres_instances %}
+  - name: postgres_{{ instance.name }}
+    dsn: 'postgres://{{ instance.db_user }}:{{ instance.db_password }}@{{ instance.host }}:{{ instance.port }}/{{ instance.db_name }}?sslmode=disable'
+    update_every: 10
+{% endfor %}
+
+
+

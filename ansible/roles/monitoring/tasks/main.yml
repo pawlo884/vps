@@ -21,13 +21,44 @@
     dest: "{{ monitoring_config_path }}/go.d/nvme.conf"
     mode: '0644'
 
+- name: Merge postgres_instances with passwords from secrets for monitoring
+  set_fact:
+    monitoring_postgres_instances: "{{ monitoring_postgres_instances | default([]) + [item | combine((postgres_instances_secrets | default([]) | selectattr('name', 'equalto', item.name) | first | default({}))) | combine({'host': 'postgres_' + item.name, 'port': '5432'})] }}"
+  vars:
+    _secrets: "{{ postgres_instances_secrets | default([]) }}"
+  loop: "{{ postgres_instances | default([]) }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when: 
+    - monitoring_postgres_enabled | default(true)
+    - postgres_instances is defined
+    - postgres_instances | length > 0
+  no_log: true  # Ukryj hasła w logach
+
+- name: Configure Netdata PostgreSQL monitoring
+  template:
+    src: postgres.conf.j2
+    dest: "{{ monitoring_config_path }}/go.d/postgres.conf"
+    mode: '0644'
+  when: 
+    - monitoring_postgres_enabled | default(true)
+    - monitoring_postgres_instances | default([]) | length > 0
+
+- name: Configure Netdata main config
+  template:
+    src: netdata.conf.j2
+    dest: "{{ monitoring_config_path }}/netdata.conf"
+    mode: '0644'
+  when: monitoring_install | default(true)
+
 - name: Start Netdata container
   command: >
     docker run -d
     --name={{ monitoring_container_name }}
-    -p 0.0.0.0:{{ monitoring_port }}:19999
+    -p 127.0.0.1:{{ monitoring_port }}:19999
     -v netdata-data:/var/lib/netdata
     -v netdata-config:/etc/netdata
+    --network={{ postgres_network | default('dbnet') }}
     --cap-add SYS_PTRACE
     --security-opt apparmor=unconfined
     --restart unless-stopped

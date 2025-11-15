@@ -21,15 +21,15 @@ app_manage_repo: true
 app_env_vars:
   DEBUG: "False"
   SECRET_KEY: ""  # Wygeneruj lub ustaw
-  DATABASE_URL: "postgresql://appuser:change_me_strong@postgres_prod:5432/nc_prod"
+  DATABASE_URL: "postgresql://pawel:Relisys17!@postgres:5432/nc_prod"
   # Dodaj więcej zmiennych według potrzeb
 
-# Database connection (użyj istniejącego kontenera PostgreSQL)
-app_db_host: postgres_prod
+# Database connection (użyj nazwy serwisu z docker-compose)
+app_db_host: postgres
 app_db_port: 5432
 app_db_name: nc_prod
-app_db_user: appuser
-app_db_password: change_me_strong
+app_db_user: pawel
+app_db_password: Relisys17!
 
 # Network - połącz z siecią PostgreSQL
 app_docker_network: dbnet
@@ -37,6 +37,6 @@ app_docker_network: dbnet
 # Expose port directly (bez reverse proxy)
 app_expose_port: 8000
 
-# Minio setup
-app_minio_setup_enabled: true
+# Minio setup - wyłączone (MinIO w osobnym stacku)
+app_minio_setup_enabled: false
 

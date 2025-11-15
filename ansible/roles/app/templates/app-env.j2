@@ -5,11 +5,18 @@ ALLOWED_HOSTS={{ app_env_vars.ALLOWED_HOSTS | default('*') }}
 
 # Database
 DATABASE_URL={{ app_env_vars.DATABASE_URL }}
-DB_HOST={{ app_db_host }}
+DB_HOST={{ app_db_host }}  # Nazwa serwisu w docker-compose (postgres)
 DB_PORT={{ app_db_port }}
 DB_NAME={{ app_db_name }}
 DB_USER={{ app_db_user }}
 DB_PASSWORD={{ app_db_password }}
+
+# Django settings używa DEFAULT_DB_* zmiennych
+DEFAULT_DB_HOST={{ app_db_host }}
+DEFAULT_DB_PORT={{ app_db_port }}
+DEFAULT_DB_NAME={{ app_db_name }}
+DEFAULT_DB_USER={{ app_db_user }}
+DEFAULT_DB_PASSWORD={{ app_db_password }}
 
 {% if app_env_vars is defined %}
 {% for key, value in app_env_vars.items() %}
