@@ -4,6 +4,7 @@
     - "{{ inventory_dir }}/group_vars/secrets.yml"
   roles:
     - common
+    - fail2ban
     - wifi
     - web
     - db
@@ -12,5 +13,6 @@
     - proxy
     - backups
     - monitoring
+    - prometheus
     - portainer
     - app

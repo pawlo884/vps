@@ -1,0 +1,102 @@
+---
+- name: Ensure prom stack directory exists
+  file:
+    path: "{{ prom_stack_dir }}"
+    state: directory
+    mode: '0755'
+  tags: [prometheus]
+
+- name: Create prometheus config directory
+  file:
+    path: "{{ prom_stack_dir }}/prometheus"
+    state: directory
+    mode: '0755'
+  tags: [prometheus]
+
+- name: Create grafana provisioning directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+  loop:
+    - "{{ prom_stack_dir }}/grafana/provisioning/datasources"
+    - "{{ prom_stack_dir }}/grafana/provisioning/dashboards"
+    - "{{ prom_stack_dir }}/grafana/dashboards"
+  tags: [prometheus]
+
+- name: Deploy prometheus.yml
+  template:
+    src: prometheus.yml.j2
+    dest: "{{ prom_stack_dir }}/prometheus/prometheus.yml"
+    mode: '0644'
+  tags: [prometheus]
+
+- name: Deploy Grafana datasource provisioning
+  template:
+    src: grafana/provisioning/datasources/datasource.yml.j2
+    dest: "{{ prom_stack_dir }}/grafana/provisioning/datasources/datasource.yml"
+    mode: '0644'
+  tags: [prometheus]
+
+- name: Deploy Grafana dashboards provisioning
+  template:
+    src: grafana/provisioning/dashboards/dashboards.yml.j2
+    dest: "{{ prom_stack_dir }}/grafana/provisioning/dashboards/dashboards.yml"
+    mode: '0644'
+  tags: [prometheus]
+
+- name: Deploy basic Grafana dashboards
+  template:
+    src: "{{ item.src }}"
+    dest: "{{ prom_stack_dir }}/grafana/dashboards/{{ item.dest }}"
+    mode: '0644'
+  loop:
+    - { src: 'grafana/dashboards/host-overview.json.j2', dest: 'host-overview.json' }
+    - { src: 'grafana/dashboards/containers-overview.json.j2', dest: 'containers-overview.json' }
+  tags: [prometheus]
+
+- name: Download Node Exporter Full dashboard from grafana.com
+  get_url:
+    url: "https://grafana.com/api/dashboards/1860/revisions/1/download"
+    dest: "{{ prom_stack_dir }}/grafana/dashboards/node-exporter-full.json"
+    mode: '0644'
+    force: yes
+  tags: [prometheus]
+
+- name: Download Docker Container & Host Metrics dashboard from grafana.com
+  get_url:
+    url: "https://grafana.com/api/dashboards/179/revisions/1/download"
+    dest: "{{ prom_stack_dir }}/grafana/dashboards/docker-container-host.json"
+    mode: '0644'
+    force: yes
+  tags: [prometheus]
+
+- name: Download PostgreSQL Database dashboard from grafana.com
+  get_url:
+    url: "https://grafana.com/api/dashboards/9628/revisions/1/download"
+    dest: "{{ prom_stack_dir }}/grafana/dashboards/postgresql-database.json"
+    mode: '0644'
+    force: yes
+  tags: [prometheus]
+
+- name: Deploy docker-compose.yml for observability
+  template:
+    src: docker-compose.yml.j2
+    dest: "{{ prom_stack_dir }}/docker-compose.yml"
+    mode: '0644'
+  tags: [prometheus]
+
+- name: Ensure Docker network exists
+  command: docker network create {{ prom_docker_network }}
+  register: create_net
+  failed_when: false
+  changed_when: "'already exists' not in create_net.stderr"
+  tags: [prometheus]
+
+- name: Bring up observability stack
+  command: docker compose -f {{ prom_stack_dir }}/docker-compose.yml up -d --remove-orphans
+  args:
+    chdir: "{{ prom_stack_dir }}"
+  tags: [prometheus]
+
+

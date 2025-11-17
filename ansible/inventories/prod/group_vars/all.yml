@@ -126,6 +126,15 @@ portainer_data_dir: /srv/portainer/data  # Na sda (system)
 portainer_compose_dir: ~/stacks/portainer
 portainer_network: portainer_network
 
+# Fail2ban (podstawowe ustawienia)
+fail2ban_bantime: 1h
+fail2ban_findtime: 10m
+fail2ban_maxretry: 5
+fail2ban_bantime_sshd: 6h
+fail2ban_maxretry_sshd: 4
+# Whitelist lokalnej sieci
+fail2ban_ignoreip: "192.168.50.0/24"
+
 # Storage - dysk 2TB NVMe
 # UWAGA: Ustaw storage_disk_device na właściwy dysk! Sprawdź przez: lsblk
 storage_configure: true # Zmień na true gdy dysk będzie zamontowany
