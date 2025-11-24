@@ -53,6 +53,11 @@
     app_env_vars: "{{ app_env_vars | default({}) | combine(app_env_vars_secrets | default({})) }}"
   when: app_env_vars_secrets is defined
 
+- name: Add QDRANT_API_KEY to app_env_vars if qdrant_api_key is set
+  set_fact:
+    app_env_vars: "{{ app_env_vars | default({}) | combine({'QDRANT_API_KEY': qdrant_api_key}) }}"
+  when: qdrant_api_key is defined and qdrant_api_key != ""
+
 - name: Generate .env file
   template:
     src: app-env.j2

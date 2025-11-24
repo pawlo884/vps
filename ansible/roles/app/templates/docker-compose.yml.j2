@@ -80,6 +80,9 @@ services:
     restart: always
     networks:
       - {{ app_docker_network }}
+{% if app_docker_network != 'dbnet' %}
+      - dbnet  # Sieć Qdrant dla komunikacji z bazą wektorową
+{% endif %}
     depends_on:
       - postgres
       - redis
@@ -306,4 +309,9 @@ volumes:
 networks:
   {{ app_docker_network }}:
     driver: bridge
+{% if app_docker_network != 'dbnet' %}
+  dbnet:
+    name: dbnet
+    external: true
+{% endif %}
 

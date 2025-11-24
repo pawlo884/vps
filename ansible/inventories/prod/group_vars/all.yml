@@ -224,3 +224,9 @@ app_env_vars:
   MINIO_API_PORT: "9100"
   MINIO_CONSOLE_PORT: "9101"
   MINIO_VERIFY_SSL: "false"
+  # Qdrant vector database connection
+  QDRANT_HOST: qdrant  # Nazwa kontenera w Docker network
+  QDRANT_PORT: 6333  # HTTP API port
+  QDRANT_GRPC_PORT: 6334  # gRPC port
+  QDRANT_URL: "http://qdrant:6333"  # Full URL dla HTTP API
+  # QDRANT_API_KEY będzie dodany automatycznie z secrets.yml jeśli jest ustawiony
