@@ -9,4 +9,7 @@ qdrant_data_dir: /srv/qdrant/data  # Na 2TB NVMe
 qdrant_compose_dir: ~/stacks/qdrant
 qdrant_network: dbnet  # Używa tej samej sieci co PostgreSQL
 qdrant_api_key: ""  # Opcjonalny API key (ustaw w secrets.yml jeśli potrzebny)
+qdrant_log_level: "INFO"  # Log level: TRACE, DEBUG, INFO, WARN, ERROR
+qdrant_max_request_size_mb: 32  # Maksymalny rozmiar requesta w MB
+qdrant_telemetry_disabled: false  # Wyłącz telemetrię (true/false)
 

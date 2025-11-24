@@ -175,6 +175,9 @@ qdrant_grpc_port: 6334
 qdrant_data_dir: /srv/qdrant/data  # Na 2TB NVMe
 qdrant_compose_dir: ~/stacks/qdrant
 qdrant_network: dbnet  # Używa tej samej sieci co PostgreSQL
+qdrant_log_level: "INFO"  # TRACE, DEBUG, INFO, WARN, ERROR
+qdrant_max_request_size_mb: 32  # Maksymalny rozmiar requesta w MB
+qdrant_telemetry_disabled: false  # Wyłącz telemetrię (true/false)
 # qdrant_api_key w secrets.yml (opcjonalny)
 
 # Environment variables dla aplikacji
