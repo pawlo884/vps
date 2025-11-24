@@ -1,0 +1,12 @@
+---
+# Qdrant vector database configuration
+qdrant_install: true
+qdrant_image: qdrant/qdrant:latest
+qdrant_container_name: qdrant
+qdrant_port: 6333
+qdrant_grpc_port: 6334
+qdrant_data_dir: /srv/qdrant/data  # Na 2TB NVMe
+qdrant_compose_dir: ~/stacks/qdrant
+qdrant_network: dbnet  # Używa tej samej sieci co PostgreSQL
+qdrant_api_key: ""  # Opcjonalny API key (ustaw w secrets.yml jeśli potrzebny)
+

@@ -60,7 +60,7 @@
     owner: "{{ app_user }}"
     group: "{{ app_user }}"
     mode: '0600'
-    force: false
+    force: "{{ app_env_force | default(false) }}"
   when: app_manage_env | default(false)
 
 - name: Generate docker-compose.yml

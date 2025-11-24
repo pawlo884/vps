@@ -11,6 +11,8 @@ ufw_allowed_ports:
   - { port: 443, proto: tcp, comment: "HTTPS" }
   - { port: 8000, proto: tcp, comment: "Django app" }
   - { port: 9000, proto: tcp, comment: "Portainer" }
+  - { port: 6333, proto: tcp, comment: "Qdrant HTTP API" }
+  - { port: 6334, proto: tcp, comment: "Qdrant gRPC" }
   - { port: 19999, proto: tcp, comment: "Netdata monitoring" }
 
 # WiFi configuration
@@ -153,13 +155,27 @@ app_port: 8000
 app_expose_port: 8000
 app_dockerfile_path: Dockerfile.prod
 
+# Wymuś odtworzenie pliku .env przy zmianach
+app_env_force: true
+
 # Database connection (używa PostgreSQL z stacku nc)
 # W Docker Compose kontener nazywa się nc-postgres-1, ale można użyć nazwy serwisu "postgres"
 app_db_host: postgres  # Nazwa serwisu w docker-compose (Docker automatycznie rozwiąże do nc-postgres-1)
 app_db_port: 5432
-app_db_name: nc_prod
+app_db_name: default
 app_db_user: pawel
 # app_db_password w secrets.yml
+
+# Qdrant vector database
+qdrant_install: true
+qdrant_image: qdrant/qdrant:latest
+qdrant_container_name: qdrant
+qdrant_port: 6333
+qdrant_grpc_port: 6334
+qdrant_data_dir: /srv/qdrant/data  # Na 2TB NVMe
+qdrant_compose_dir: ~/stacks/qdrant
+qdrant_network: dbnet  # Używa tej samej sieci co PostgreSQL
+# qdrant_api_key w secrets.yml (opcjonalny)
 
 # Environment variables dla aplikacji
 # UWAGA: SECRET_KEY i DATABASE_URL są w secrets.yml
@@ -167,4 +183,41 @@ app_env_vars:
   DEBUG: "False"
   # SECRET_KEY w secrets.yml
   ALLOWED_HOSTS: "*"
+  DJANGO_SETTINGS_MODULE: "nc.settings.prod"
+  DOCKERHUB_USERNAME: "pawlo884"
   # DATABASE_URL w secrets.yml
+  DB_HOST: postgres
+  DB_PORT: 5432
+  DB_NAME: default
+  DB_USER: pawel
+  DB_PASSWORD: Relisys17!
+  DEFAULT_DB_HOST: postgres
+  DEFAULT_DB_PORT: 5432
+  DEFAULT_DB_NAME: default
+  DEFAULT_DB_USER: pawel
+  DEFAULT_DB_PASSWORD: Relisys17!
+  WEB_AGENT_PORT: 5432
+  WEB_AGENT_NAME: web_agent
+  MATTERHORN1_DB_HOST: postgres
+  MATTERHORN1_DB_PORT: 5432
+  MATTERHORN1_DB_NAME: matterhorn1
+  MATTERHORN1_DB_USER: pawel
+  MATTERHORN1_DB_PASSWORD: Relisys17!
+  MPD_DB_HOST: postgres
+  MPD_DB_PORT: 5432
+  MPD_DB_NAME: MPD
+  MPD_DB_USER: pawel
+  MPD_DB_PASSWORD: Relisys17!
+  WEB_AGENT_DB_HOST: postgres
+  WEB_AGENT_DB_PORT: 5432
+  WEB_AGENT_DB_NAME: web_agent
+  WEB_AGENT_DB_USER: pawel
+  WEB_AGENT_DB_PASSWORD: Relisys17!
+  REDIS_HOST: redis
+  REDIS_PORT: 6379
+  REDIS_DB: 0
+  CELERY_BROKER_URL: "redis://:${REDIS_PASSWORD}@${REDIS_HOST}:${REDIS_PORT}/${REDIS_DB}"
+  CELERY_RESULT_BACKEND: "redis://:${REDIS_PASSWORD}@${REDIS_HOST}:${REDIS_PORT}/${REDIS_DB}"
+  MINIO_API_PORT: "9100"
+  MINIO_CONSOLE_PORT: "9101"
+  MINIO_VERIFY_SSL: "false"

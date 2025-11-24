@@ -51,6 +51,22 @@
     mode: '0644'
   when: monitoring_install | default(true)
 
+- name: Create htpasswd file for Netdata basic auth
+  htpasswd:
+    path: "{{ monitoring_config_path }}/.htpasswd"
+    name: "{{ monitoring_auth_user }}"
+    password: "{{ monitoring_auth_password }}"
+    owner: root
+    group: root
+    mode: '0644'
+    create: yes
+  when:
+    - monitoring_install | default(true)
+    - monitoring_auth_enabled | default(true)
+    - monitoring_auth_user is defined
+    - monitoring_auth_password is defined
+  no_log: true
+
 - name: Start Netdata container
   command: >
     docker run -d
@@ -58,6 +74,7 @@
     -p 127.0.0.1:{{ monitoring_port }}:19999
     -v netdata-data:/var/lib/netdata
     -v netdata-config:/etc/netdata
+    {% if monitoring_auth_enabled | default(true) and monitoring_auth_user is defined and monitoring_auth_password is defined %}-v {{ monitoring_config_path }}/.htpasswd:/etc/netdata/.htpasswd:ro{% endif %}
     --network={{ postgres_network | default('dbnet') }}
     --cap-add SYS_PTRACE
     --security-opt apparmor=unconfined

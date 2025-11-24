@@ -15,6 +15,7 @@ app_dockerfile_path: "Dockerfile.prod"
 app_compose_dir: "/home/{{ vps_user }}/stacks/{{ app_name }}"
 app_env_file: ".env"
 app_manage_env: true
+app_env_force: false
 app_manage_repo: true
 
 # Environment variables (będą przekazane do .env)

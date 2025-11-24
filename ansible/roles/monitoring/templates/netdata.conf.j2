@@ -17,8 +17,18 @@
     bind to = *
     port = 19999
     # Basic auth credentials
-    # Note: Netdata uses htpasswd format, but we'll use simple auth
-    # For production, consider using reverse proxy with proper auth
+    enable basic authentication = yes
+    basic authentication realm = Netdata
+    basic authentication users = {{ monitoring_auth_user }}
+{% else %}
+    allow connections from = *
+    allow dashboard from = *
+    allow badges from = *
+    allow streaming from = *
+    allow netdata.conf from = localhost *
+    allow management from = localhost
+    bind to = *
+    port = 19999
 {% endif %}
 
 

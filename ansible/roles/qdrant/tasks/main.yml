@@ -1,0 +1,41 @@
+---
+- name: Set qdrant compose directory
+  set_fact:
+    qdrant_compose_dir_expanded: "{{ (qdrant_compose_dir | default('/home/' + vps_user + '/stacks/qdrant')) | regex_replace('^~', '/home/' + vps_user) }}"
+
+- name: Ensure Qdrant directories exist
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ vps_user }}"
+    group: "{{ vps_user }}"
+    mode: '0755'
+  loop:
+    - "{{ qdrant_compose_dir_expanded }}"
+    - "{{ qdrant_data_dir }}"
+  when: qdrant_install | default(true)
+
+- name: Generate docker-compose.yml for Qdrant
+  template:
+    src: docker-compose.yml.j2
+    dest: "{{ qdrant_compose_dir_expanded }}/docker-compose.yml"
+    owner: "{{ vps_user }}"
+    group: "{{ vps_user }}"
+    mode: "0644"
+  when: qdrant_install | default(true)
+
+- name: Ensure Docker network exists (for Qdrant connection)
+  community.docker.docker_network:
+    name: "{{ qdrant_network }}"
+    state: present
+  when: qdrant_install | default(true)
+
+- name: Start Qdrant container
+  community.docker.docker_compose_v2:
+    project_src: "{{ qdrant_compose_dir_expanded }}"
+    state: present
+  become_user: "{{ vps_user }}"
+  environment:
+    COMPOSE_PROJECT_NAME: qdrant
+  when: qdrant_install | default(true)
+
