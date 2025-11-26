@@ -14,6 +14,7 @@ ufw_allowed_ports:
   - { port: 6333, proto: tcp, comment: "Qdrant HTTP API" }
   - { port: 6334, proto: tcp, comment: "Qdrant gRPC" }
   - { port: 19999, proto: tcp, comment: "Netdata monitoring" }
+  - { port: 5050, proto: tcp, comment: "pgAdmin" }
 
 # WiFi configuration
 # UWAGA: Ustaw wifi_configure: true aby włączyć konfigurację WiFi
@@ -88,6 +89,13 @@ postgres_instances:
 postgres_image: postgres:18
 postgres_network: dbnet
 postgres_compose_dir: ~/stacks/db
+
+# pgAdmin - narzędzie do zarządzania bazami PostgreSQL z przeglądarki
+pgadmin_install: true
+pgadmin_image: dpage/pgadmin4:latest
+pgadmin_port: 5050
+pgadmin_data_dir: /srv/pgadmin/data  # Na sda (system)
+# Hasła (pgadmin_email i pgadmin_password) są w secrets.yml
 
 # Caddy reverse proxy
 proxy_install: true

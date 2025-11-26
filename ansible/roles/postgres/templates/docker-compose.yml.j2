@@ -51,7 +51,28 @@ services:
 {% endif %}
 
 {% endfor %}
+{% if pgadmin_install | default(false) %}
+  pgadmin:
+    image: "{{ pgadmin_image }}"
+    container_name: pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: "{{ pgadmin_email }}"
+      PGADMIN_DEFAULT_PASSWORD: "{{ pgadmin_password }}"
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: "False"
+    volumes:
+      - "{{ pgadmin_data_dir }}:/var/lib/pgadmin"
+    ports:
+      - "{{ pgadmin_port }}:80"
+    networks:
+      - "{{ postgres_network }}"
+    depends_on:
+{% for instance in postgres_instances %}
+      - postgres_{{ instance.name }}
+{% endfor %}
 
+{% endif %}
 networks:
   {{ postgres_network }}:
     name: "{{ postgres_network }}"

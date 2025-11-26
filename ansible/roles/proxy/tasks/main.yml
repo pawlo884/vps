@@ -34,6 +34,7 @@
   community.docker.docker_compose_v2:
     project_src: "{{ proxy_compose_dir_expanded }}"
     state: present
+    recreate: auto
   become_user: "{{ vps_user }}"
   environment:
     COMPOSE_PROJECT_NAME: caddy

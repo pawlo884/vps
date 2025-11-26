@@ -24,3 +24,9 @@ postgres_network: dbnet
 # RAM configuration (16GB or 32GB)
 postgres_ram_gb: 16
 
+# pgAdmin configuration
+pgadmin_install: false
+pgadmin_image: dpage/pgadmin4:latest
+pgadmin_port: 5050
+pgadmin_data_dir: /srv/pgadmin/data
+

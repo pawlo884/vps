@@ -37,6 +37,15 @@
   loop_control:
     label: "{{ item.name }} backups dir"
 
+- name: Ensure pgAdmin data directory exists
+  file:
+    path: "{{ pgadmin_data_dir }}"
+    state: directory
+    owner: "5050"
+    group: "5050"
+    mode: "0755"
+  when: pgadmin_install | default(false)
+
 - name: Set postgres compose directory
   set_fact:
     postgres_compose_dir_expanded: "{{ (postgres_compose_dir | default('/home/' + vps_user + '/stacks/db')) | regex_replace('^~', '/home/' + vps_user) }}"
@@ -61,6 +70,7 @@
   community.docker.docker_compose_v2:
     project_src: "{{ postgres_compose_dir_expanded }}"
     state: present
+    recreate: auto
   become_user: "{{ vps_user }}"
   environment:
     COMPOSE_PROJECT_NAME: postgres

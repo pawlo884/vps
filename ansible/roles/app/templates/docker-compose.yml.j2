@@ -205,9 +205,10 @@ services:
       - -c
       - >
         sleep 20 &&
-        celery -A nc.celery beat --loglevel=info
+        celery -A nc.celery beat --loglevel=info --schedule=/var/lib/celery/celerybeat-schedule
     volumes:
       - {{ app_dir }}:/app
+      - celery_beat_data:/var/lib/celery
     env_file:
       - {{ app_env_file }}
     environment:
@@ -303,6 +304,7 @@ volumes:
   media_volume:
   postgres_data:
   celery_data:
+  celery_beat_data:
   nginx_logs:
   flower_data:
 
