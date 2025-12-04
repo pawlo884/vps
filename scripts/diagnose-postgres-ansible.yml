@@ -1,0 +1,158 @@
+---
+# Playbook do diagnozy źródła starego snapshotu
+- hosts: web
+  become: false
+  gather_facts: false
+  tasks:
+    - name: 1.1. Sprawdź /etc/fstab (data2tb, docker, postgres)
+      shell: |
+        sudo cat /etc/fstab | grep -E 'data2tb|docker|postgres' || echo "BRAK wpisów"
+      register: fstab_check
+      failed_when: false
+
+    - name: Wyświetl fstab
+      debug:
+        var: fstab_check.stdout_lines
+
+    - name: 1.2. Sprawdź aktualne mounty
+      shell: |
+        mount | grep -E 'data2tb|docker|postgres' || echo "BRAK mountów"
+      register: mount_check
+      failed_when: false
+
+    - name: Wyświetl mounty
+      debug:
+        var: mount_check.stdout_lines
+
+    - name: 2.1. Sprawdź zawartość nc_postgres_data
+      shell: |
+        ls -lth /mnt/data2tb/docker/volumes/nc_postgres_data 2>/dev/null | head -10 || echo "Katalog nie istnieje"
+      register: nc_postgres_data_ls
+      failed_when: false
+
+    - name: Wyświetl zawartość nc_postgres_data
+      debug:
+        var: nc_postgres_data_ls.stdout_lines
+
+    - name: 2.2. Rozmiar nc_postgres_data
+      shell: |
+        du -sh /mnt/data2tb/docker/volumes/nc_postgres_data 2>/dev/null || echo "Brak"
+      register: nc_postgres_data_size
+      failed_when: false
+
+    - name: Wyświetl rozmiar
+      debug:
+        var: nc_postgres_data_size.stdout
+
+    - name: 2.3. Najnowsze pliki w nc_postgres_data
+      shell: |
+        find /mnt/data2tb/docker/volumes/nc_postgres_data -type f -printf '%T@ %TY-%Tm-%Td %TH:%TM %p\n' 2>/dev/null | sort -rn | head -5 | awk '{print $2" "$3" "$4}' || echo "Brak plików"
+      register: nc_postgres_data_files
+      failed_when: false
+
+    - name: Wyświetl najnowsze pliki
+      debug:
+        var: nc_postgres_data_files.stdout_lines
+
+    - name: 3.1. Wszystkie kontenery postgres
+      shell: |
+        docker ps -a --format '{{.Names}}\t{{.Status}}\t{{.CreatedAt}}' | grep -i postgres || echo "BRAK"
+      register: postgres_containers
+      failed_when: false
+
+    - name: Wyświetl kontenery postgres
+      debug:
+        var: postgres_containers.stdout_lines
+
+    - name: 3.2. Mounts kontenera nc-postgres-1
+      shell: |
+        docker inspect nc-postgres-1 --format '{{json .Mounts}}' 2>/dev/null | python3 -m json.tool || echo "Błąd"
+      register: nc_postgres_mounts
+      failed_when: false
+
+    - name: Wyświetl mounts
+      debug:
+        var: nc_postgres_mounts.stdout_lines
+
+    - name: 3.3. Data utworzenia kontenera
+      shell: |
+        docker inspect nc-postgres-1 --format 'Created: {{.Created}}' 2>/dev/null || echo "Błąd"
+      register: nc_postgres_created
+      failed_when: false
+
+    - name: Wyświetl datę utworzenia
+      debug:
+        var: nc_postgres_created.stdout
+
+    - name: 4.1. Zawartość initdb.d
+      shell: |
+        ls -l /home/pawel/apps/nc/docker/postgres/initdb.d 2>/dev/null || echo "Katalog nie istnieje"
+      register: initdb_ls
+      failed_when: false
+
+    - name: Wyświetl initdb.d
+      debug:
+        var: initdb_ls.stdout_lines
+
+    - name: 4.2. Zawartość plików .sh w initdb.d
+      shell: |
+        for f in /home/pawel/apps/nc/docker/postgres/initdb.d/*.sh 2>/dev/null; do [ -f "$f" ] && echo "=== $(basename $f) ===" && head -50 "$f" && echo ""; done || echo "Brak plików .sh"
+      register: initdb_sh
+      failed_when: false
+
+    - name: Wyświetl pliki .sh
+      debug:
+        var: initdb_sh.stdout_lines
+
+    - name: 4.3. Zawartość plików .sql w initdb.d
+      shell: |
+        for f in /home/pawel/apps/nc/docker/postgres/initdb.d/*.sql 2>/dev/null; do [ -f "$f" ] && echo "=== $(basename $f) ===" && head -50 "$f" && echo ""; done || echo "Brak plików .sql"
+      register: initdb_sql
+      failed_when: false
+
+    - name: Wyświetl pliki .sql
+      debug:
+        var: initdb_sql.stdout_lines
+
+    - name: 5.1. Cron użytkownika (postgres/data2tb)
+      shell: |
+        crontab -l 2>/dev/null | grep -E 'postgres|data2tb|nc_postgres' || echo "BRAK"
+      register: cron_user
+      failed_when: false
+
+    - name: Wyświetl cron użytkownika
+      debug:
+        var: cron_user.stdout_lines
+
+    - name: 5.2. Systemowe crony
+      shell: |
+        sudo grep -R 'nc_postgres_data\|/mnt/data2tb' /etc/cron* 2>/dev/null | head -10 || echo "BRAK"
+      register: cron_system
+      failed_when: false
+
+    - name: Wyświetl systemowe crony
+      debug:
+        var: cron_system.stdout_lines
+
+    - name: 6. Docker Root Dir
+      shell: |
+        docker info 2>/dev/null | grep -i 'Docker Root Dir' || echo "Błąd"
+      register: docker_root
+      failed_when: false
+
+    - name: Wyświetl Docker Root Dir
+      debug:
+        var: docker_root.stdout
+
+    - name: 7. Docker Compose volumes dla postgres
+      shell: |
+        grep -A 15 'postgres:' /home/pawel/apps/nc/docker-compose.yml 2>/dev/null | grep -A 10 'volumes:' || echo "Nie znaleziono"
+      register: docker_compose_volumes
+      failed_when: false
+
+    - name: Wyświetl docker-compose volumes
+      debug:
+        var: docker_compose_volumes.stdout_lines
+
+
+

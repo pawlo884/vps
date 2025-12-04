@@ -90,6 +90,19 @@ postgres_image: postgres:18
 postgres_network: dbnet
 postgres_compose_dir: ~/stacks/db
 
+# PostgreSQL testowy - kontener testowy z optymalizacjami
+# UWAGA: Hasło (postgres_test_password) jest w secrets.yml
+postgres_test_enabled: true
+postgres_test_compose_dir: ~/stacks/test-postgres
+postgres_test_image: postgres:18.1-alpine
+postgres_test_container_name: nc-postgres-test
+postgres_test_port: "5433:5432"
+postgres_test_volume: nc_postgres_test_data
+postgres_test_network: test_network
+postgres_test_user: testuser
+postgres_test_db: testdb
+# postgres_test_password w secrets.yml
+
 # pgAdmin - narzędzie do zarządzania bazami PostgreSQL z przeglądarki
 pgadmin_install: true
 pgadmin_image: dpage/pgadmin4:latest

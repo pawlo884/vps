@@ -33,6 +33,14 @@ services:
       - random_page_cost=1.1
       - -c
       - effective_io_concurrency=200
+      - -c
+      - listen_addresses=*
+      - -c
+      - tcp_keepalives_idle=600
+      - -c
+      - tcp_keepalives_interval=30
+      - -c
+      - tcp_keepalives_count=3
     volumes:
       - "{{ instance.data_dir }}:/var/lib/postgresql/data"
       - "{{ instance.backups_dir }}:/backups"

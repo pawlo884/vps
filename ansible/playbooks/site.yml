@@ -10,6 +10,7 @@
     - db
     - storage
     - postgres
+    - postgres-test
     - qdrant
     - proxy
     - backups

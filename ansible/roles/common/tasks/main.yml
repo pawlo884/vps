@@ -14,6 +14,18 @@
     state: present
   when: "'unattended-upgrades' in base_packages"
 
+- name: Configure unattended-upgrades automatic reboot
+  copy:
+    dest: /etc/apt/apt.conf.d/52unattended-upgrades-reboot
+    content: |
+      // Automatyczny restart po aktualizacjach kernela
+      Unattended-Upgrade::AutomaticReboot "true";
+      Unattended-Upgrade::AutomaticRebootTime "04:00";
+      // Restartuj tylko jeśli nie ma aktywnych użytkowników SSH (ostrożnie!)
+      // Unattended-Upgrade::AutomaticRebootWithUsers "false";
+    mode: "0644"
+  when: "'unattended-upgrades' in base_packages"
+
 # Docker installation
 - name: Install Docker
   shell: curl -fsSL https://get.docker.com | sh
