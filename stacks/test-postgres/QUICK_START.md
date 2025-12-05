@@ -65,3 +65,6 @@ docker exec nc-postgres-test psql -U testuser -d testdb -c "SELECT version();"
 
 Przed uruchomieniem sprawdź i ustaw hasło w `docker-compose.yml` (linia 9).
 
+
+
+

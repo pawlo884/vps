@@ -138,3 +138,6 @@ Volume `nc_postgres_test_data` zawiera dane bazy. Aby zrobić backup:
 docker exec nc-postgres-test pg_dump -U testuser testdb > backup_$(date +%Y%m%d_%H%M%S).sql
 ```
 
+
+
+

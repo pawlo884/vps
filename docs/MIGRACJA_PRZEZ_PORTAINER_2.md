@@ -118,3 +118,6 @@ Możesz też utworzyć nowy stack w Portainerze:
 ✅ Limity zasobów są aktywne
 ✅ **Wszystkie dane są zachowane** (ten sam volume)
 
+
+
+

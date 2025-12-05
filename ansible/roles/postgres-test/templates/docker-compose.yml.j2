@@ -5,6 +5,9 @@ services:
     container_name: {{ postgres_test_container_name | default('nc-postgres-test') }}
     restart: unless-stopped
     environment:
+      POSTGRES_USER: {{ postgres_test_user | default('testuser') }}
+      POSTGRES_PASSWORD: {{ postgres_test_password }}
+      POSTGRES_DB: {{ postgres_test_db | default('testdb') }}
       TZ: Europe/Warsaw
       PGDATA: /var/lib/postgresql/data/18/docker
     command:

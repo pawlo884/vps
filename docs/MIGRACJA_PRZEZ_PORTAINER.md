@@ -120,3 +120,6 @@ Jeśli masz dostęp do Portainera, możesz też:
 - Zobaczyć volume używany przez kontener
 - Sprawdzić logi kontenera
 
+
+
+

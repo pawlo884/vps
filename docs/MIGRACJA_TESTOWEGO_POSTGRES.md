@@ -163,3 +163,6 @@ docker start nc-postgres-test
 
 Lub przywrócić z backupu (jeśli zrobiłeś backup volume).
 
+
+
+

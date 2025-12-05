@@ -211,3 +211,6 @@ fi
 - Nie jesteś pewien? → **Opcja 1** (najbezpieczniejsza)
 - Masz dane? → **Opcja 2** (zachowuje dane)
 
+
+
+

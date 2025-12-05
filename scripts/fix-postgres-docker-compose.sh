@@ -129,3 +129,6 @@ echo "UWAGA: Jeśli kontenery są zarządzane przez docker-compose,"
 echo "lepiej dodać te ustawienia bezpośrednio do pliku docker-compose.yml"
 echo "w sekcji command, aby przetrwały restart kontenerów."
 
+
+
+

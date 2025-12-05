@@ -89,3 +89,6 @@ echo "  - tcp_keepalives_count = 3"
 echo ""
 echo "Te ustawienia powinny rozwiązać problem z długimi połączeniami."
 
+
+
+

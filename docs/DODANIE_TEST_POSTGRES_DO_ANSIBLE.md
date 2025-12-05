@@ -39,3 +39,6 @@ Dodać do głównego playbooka możliwość zarządzania kontenerem testowym.
 1. Teraz: Migruj ręcznie używając przygotowanych plików
 2. Później: Dodaj do Ansible jako osobny stack
 
+
+
+

@@ -118,3 +118,6 @@ echo "UWAGA: Dla pełnej optymalizacji (healthcheck, limity logowania, etc.)"
 echo "zastanów się nad migracją do docker-compose:"
 echo "  ~/vps/scripts/migrate-test-postgres.sh"
 
+
+
+

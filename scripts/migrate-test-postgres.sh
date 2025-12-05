@@ -72,3 +72,6 @@ echo ""
 echo "=== Zakończono przygotowanie migracji ==="
 echo "Teraz możesz uruchomić nowy kontener używając docker-compose."
 
+
+
+
