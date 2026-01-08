@@ -11,6 +11,8 @@ services:
     volumes:
       - {{ nginx_proxy_manager_data_dir }}:/data
       - {{ nginx_proxy_manager_letsencrypt_dir }}:/etc/letsencrypt
+    extra_hosts:
+      - "host.docker.internal:172.17.0.1"
     networks:
       - {{ nginx_proxy_manager_network }}
 
