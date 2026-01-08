@@ -15,6 +15,7 @@ ufw_allowed_ports:
   - { port: 6334, proto: tcp, comment: "Qdrant gRPC" }
   - { port: 19999, proto: tcp, comment: "Netdata monitoring" }
   - { port: 5050, proto: tcp, comment: "pgAdmin" }
+  - { port: 81, proto: tcp, comment: "Nginx Proxy Manager Admin" }
 
 # WiFi configuration
 # UWAGA: Ustaw wifi_configure: true aby włączyć konfigurację WiFi
@@ -148,6 +149,19 @@ portainer_image: portainer/portainer-ce:latest
 portainer_data_dir: /srv/portainer/data  # Na sda (system)
 portainer_compose_dir: ~/stacks/portainer
 portainer_network: portainer_network
+
+# Nginx Proxy Manager - reverse proxy z web UI
+nginx_proxy_manager_install: true
+nginx_proxy_manager_takeover: false  # Ustaw na true aby przejąć istniejący NPM
+nginx_proxy_manager_container_name: nginx-proxy-manager
+nginx_proxy_manager_image: jc21/nginx-proxy-manager:latest
+nginx_proxy_manager_http_port: 80
+nginx_proxy_manager_https_port: 443
+nginx_proxy_manager_admin_port: 81
+nginx_proxy_manager_data_dir: /srv/nginx-proxy-manager/data  # Na sda (system)
+nginx_proxy_manager_letsencrypt_dir: /srv/nginx-proxy-manager/letsencrypt  # Na sda (system)
+nginx_proxy_manager_compose_dir: ~/stacks/nginx-proxy-manager
+nginx_proxy_manager_network: nginx_proxy_manager_network
 
 # Fail2ban (podstawowe ustawienia)
 fail2ban_bantime: 1h
