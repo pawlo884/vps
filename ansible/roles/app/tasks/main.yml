@@ -32,6 +32,7 @@
     dest: "{{ app_dir }}"
     version: "{{ app_repo_branch }}"
     update: yes
+    force: yes
   become_user: "{{ app_user }}"
   when: app_manage_repo | default(true) and app_repo_url != "" and git_dir.stat.exists == true
 

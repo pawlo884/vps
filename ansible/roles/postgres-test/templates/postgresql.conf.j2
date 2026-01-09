@@ -3,10 +3,13 @@
 
 # ============================================================================
 # TCP Keepalive settings (KRYTYCZNE - rozwiązuje problem wolnych połączeń)
+# Zoptymalizowane dla sieci lokalnej WiFi (lokalny PC -> VPS w tej samej sieci)
+# WiFi routery często zamykają nieaktywne połączenia, więc wartości są agresywne
 # ============================================================================
-tcp_keepalives_idle = 60
-tcp_keepalives_interval = 10
-tcp_keepalives_count = 5
+tcp_keepalives_idle = 15          # 15s - WiFi routery zamykają połączenia szybciej
+tcp_keepalives_interval = 3      # 3s - szybka reakcja na problemy
+tcp_keepalives_count = 3         # 3 próby przed timeoutem
+statement_timeout = 30000         # Timeout zapytania (30 sekund w ms)
 
 # ============================================================================
 # Network settings

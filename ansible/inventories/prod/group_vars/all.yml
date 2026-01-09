@@ -1,267 +1,46 @@
-# Ogólne ustawienia VPS
-vps_hostname: vps
-vps_user: pawel
-
-# Firewall
-ufw_default_deny_incoming: true
-ufw_default_allow_outgoing: true
-ufw_allowed_ports:
-  - { port: 22, proto: tcp, comment: "SSH" }
-  - { port: 80, proto: tcp, comment: "HTTP" }
-  - { port: 443, proto: tcp, comment: "HTTPS" }
-  - { port: 8000, proto: tcp, comment: "Django app" }
-  - { port: 9000, proto: tcp, comment: "Portainer" }
-  - { port: 6333, proto: tcp, comment: "Qdrant HTTP API" }
-  - { port: 6334, proto: tcp, comment: "Qdrant gRPC" }
-  - { port: 19999, proto: tcp, comment: "Netdata monitoring" }
-  - { port: 5050, proto: tcp, comment: "pgAdmin" }
-  - { port: 81, proto: tcp, comment: "Nginx Proxy Manager Admin" }
-
-# WiFi configuration
-# UWAGA: Ustaw wifi_configure: true aby włączyć konfigurację WiFi
-wifi_configure: true  # Zmień na true aby włączyć
-wifi_interface: "wlp0s20f3"  # Nazwa interfejsu WiFi (sprawdź przez: ip link show)
-wifi_dhcp: false  # Użyj DHCP (true) lub statycznego IP (false)
-
-# Statyczny IP
-wifi_static_address: "192.168.50.31/24"
-wifi_static_gateway: "192.168.50.1"
-wifi_static_nameservers:
-  - "1.1.1.1"
-  - "8.8.8.8"
-
-# Lista sieci WiFi (wyższy priority = wyższy priorytet)
-# UWAGA: Hasła są w secrets.yml (nie commitowany, w .gitignore)
-# Skopiuj secrets.yml.example do secrets.yml i uzupełnij hasła
-# wifi_networks jest definiowane w secrets.yml
-
+---
 # Podstawowe pakiety systemowe
 base_packages:
   - git
   - curl
   - wget
+  - vim
   - htop
-  - ufw
-  - fail2ban
   - unattended-upgrades
-  - python3-venv
-  - python3-pip
-  - build-essential
-  - nvme-cli
 
-# Docker (opcjonalne)
+# Użytkownik VPS
+vps_user: pawel
+
+# Docker
 docker_install: true
 
-# PostgreSQL client (jeśli będzie potrzebny)
-postgres_client_install: false
+# Firewall UFW
+ufw_allowed_ports:
+  - { port: 22, proto: tcp, comment: "SSH" }
+  - { port: 80, proto: tcp, comment: "HTTP" }
+  - { port: 443, proto: tcp, comment: "HTTPS" }
+  - { port: 81, proto: tcp, comment: "Nginx Proxy Manager Admin" }
+  - { port: 9000, proto: tcp, comment: "Portainer" }
 
-# Nginx (ogólna konfiguracja)
-nginx_install: false
+ufw_default_deny_incoming: true
+ufw_default_allow_outgoing: true
 
-# Hardening (w common role)
+# Sysctl
 sysctl_swappiness: 10
-docker_log_max_size: 50m
-docker_log_max_file: 3
-journald_max_size: 200M
 
-# Docker maintenance - automatyczne czyszczenie
-docker_cleanup_enabled: true
-docker_cleanup_schedule: "0 3 * * 0"  # Co niedzielę o 3:00 (format cron: minute hour day month weekday)
-docker_cleanup_prune_all: false  # true = usuwa wszystkie nieużywane obrazy, false = tylko dangling
+# Docker cleanup schedule (cron format: minute hour day month weekday)
+docker_cleanup_schedule: "0 3 * * 0"  # Co niedzielę o 3:00
 
-# PostgreSQL w Dockerze
-# UWAGA: Hasła (db_password) są w secrets.yml
-postgres_instances:
-  - name: shared
-    db_name: shared
-    db_user: shareduser
-    # db_password w secrets.yml
-    data_dir: /srv/postgres/shared/data  # Na 2TB NVMe
-    backups_dir: /srv/postgres/shared/backups  # Symlink do /srv/backups/postgres/shared (na sda)
-    shm_size: 512m
-    shared_buffers: 1GB
-    effective_cache_size: 3GB
-    work_mem: 8MB
-    maintenance_work_mem: 128MB
-    ports:
-      - "5434:5432"
-    pgdata: /var/lib/postgresql/data/pgdata
+# WiFi configuration
+wifi_configure: false  # Ustaw na true jeśli chcesz skonfigurować WiFi
 
-postgres_image: postgres:18
-postgres_network: dbnet
-postgres_compose_dir: ~/stacks/db
-
-# PostgreSQL testowy - kontener testowy z optymalizacjami
-# UWAGA: Hasło (postgres_test_password) jest w secrets.yml
+# PostgreSQL test instance
 postgres_test_enabled: true
-postgres_test_compose_dir: ~/stacks/test-postgres
-postgres_test_image: postgres:18.1-alpine
-postgres_test_container_name: nc-postgres-test
-postgres_test_port: "5433:5432"
-postgres_test_volume: nc_postgres_test_data
-postgres_test_network: test_network
-postgres_test_user: testuser
-postgres_test_db: testdb
-# postgres_test_password w secrets.yml
+postgres_test_password: "testpass123"  # Zmień w secrets.yml!
 
-# pgAdmin - narzędzie do zarządzania bazami PostgreSQL z przeglądarki
-pgadmin_install: true
-pgadmin_image: dpage/pgadmin4:latest
-pgadmin_port: 5050
-pgadmin_data_dir: /srv/pgadmin/data  # Na sda (system)
-# Hasła (pgadmin_email i pgadmin_password) są w secrets.yml
+# PostgreSQL instances secrets (dla prometheus i monitoring)
+postgres_instances_secrets: []
 
-# Caddy reverse proxy
-proxy_install: true
-proxy_image: caddy:2
-proxy_compose_dir: ~/stacks/proxy
-proxy_network: proxy
-proxy_http_port: 80
-proxy_https_port: 443
-
-# Przykładowa konfiguracja domen (dostosuj pod siebie):
-# proxy_domains:
-#   - domain: example.com
-#     email: admin@example.com
-#     backend: app:8000
-proxy_domains: []
-
-# Backupy PostgreSQL
-backups_enabled: true
-backup_retention_days: 7
-backup_time: "02:00"
-
-# Konfiguracja backupów PostgreSQL - przeniesiona do secrets.yml
-# postgres_backup_instances jest w secrets.yml
-
-# Monitoring (Netdata)
-monitoring_install: true
-monitoring_port: 19999
-monitoring_postgres_enabled: true  # Włącz monitorowanie PostgreSQL
-monitoring_auth_enabled: true  # Włącz basic authentication (hasła w secrets.yml)
-
-# Portainer
-portainer_install: true
-portainer_takeover: true  # Przejęcie istniejącego Portainera pod zarząd Ansible
-portainer_container_name: portainer
-portainer_port: 9000
-portainer_image: portainer/portainer-ce:latest
-portainer_data_dir: /srv/portainer/data  # Na sda (system)
-portainer_compose_dir: ~/stacks/portainer
-portainer_network: portainer_network
-
-# Nginx Proxy Manager - reverse proxy z web UI
-nginx_proxy_manager_install: true
-nginx_proxy_manager_takeover: false  # Ustaw na true aby przejąć istniejący NPM
-nginx_proxy_manager_container_name: nginx-proxy-manager
-nginx_proxy_manager_image: jc21/nginx-proxy-manager:latest
-nginx_proxy_manager_http_port: 80
-nginx_proxy_manager_https_port: 443
-nginx_proxy_manager_admin_port: 81
-nginx_proxy_manager_data_dir: /srv/nginx-proxy-manager/data  # Na sda (system)
-nginx_proxy_manager_letsencrypt_dir: /srv/nginx-proxy-manager/letsencrypt  # Na sda (system)
-nginx_proxy_manager_compose_dir: ~/stacks/nginx-proxy-manager
-nginx_proxy_manager_network: nginx_proxy_manager_network
-
-# Fail2ban (podstawowe ustawienia)
-fail2ban_bantime: 1h
-fail2ban_findtime: 10m
-fail2ban_maxretry: 5
-fail2ban_bantime_sshd: 6h
-fail2ban_maxretry_sshd: 4
-# Whitelist lokalnej sieci
-fail2ban_ignoreip: "192.168.50.0/24"
-
-# Storage - dysk 2TB NVMe
-# UWAGA: Ustaw storage_disk_device na właściwy dysk! Sprawdź przez: lsblk
-storage_configure: true # Zmień na true gdy dysk będzie zamontowany
-storage_disk_device: "/dev/nvme0n1" # np. /dev/nvme0n1 - ZMIEŃ przed uruchomieniem!
-storage_mount_point: /mnt/data2tb
-storage_filesystem: ext4
-storage_label: data2tb
-# Bind mounts są zdefiniowane w roli storage/defaults/main.yml
-# Możesz nadpisać storage_bind_mounts tutaj jeśli potrzebujesz innych ścieżek
-
-# Django application deployment
-app_name: nc
-app_repo_url: "git@github.com:pawlo884/nc.git"
-app_repo_branch: main
-app_port: 8000
-app_expose_port: 8000
-app_dockerfile_path: Dockerfile.prod
-
-# Wymuś odtworzenie pliku .env przy zmianach
-app_env_force: true
-
-# Database connection (używa PostgreSQL z stacku nc)
-# W Docker Compose kontener nazywa się nc-postgres-1, ale można użyć nazwy serwisu "postgres"
-app_db_host: postgres  # Nazwa serwisu w docker-compose (Docker automatycznie rozwiąże do nc-postgres-1)
-app_db_port: 5432
-app_db_name: default
-app_db_user: pawel
-# app_db_password w secrets.yml
-
-# Qdrant vector database
-qdrant_install: true
-qdrant_image: qdrant/qdrant:latest
-qdrant_container_name: qdrant
-qdrant_port: 6333
-qdrant_grpc_port: 6334
-qdrant_data_dir: /srv/qdrant/data  # Na 2TB NVMe
-qdrant_compose_dir: ~/stacks/qdrant
-qdrant_network: dbnet  # Używa tej samej sieci co PostgreSQL
-qdrant_log_level: "INFO"  # TRACE, DEBUG, INFO, WARN, ERROR
-qdrant_max_request_size_mb: 32  # Maksymalny rozmiar requesta w MB
-qdrant_telemetry_disabled: false  # Wyłącz telemetrię (true/false)
-# qdrant_api_key w secrets.yml (opcjonalny)
-
-# Environment variables dla aplikacji
-# UWAGA: SECRET_KEY i DATABASE_URL są w secrets.yml
-app_env_vars:
-  DEBUG: "False"
-  # SECRET_KEY w secrets.yml
-  ALLOWED_HOSTS: "*"
-  DJANGO_SETTINGS_MODULE: "nc.settings.prod"
-  DOCKERHUB_USERNAME: "pawlo884"
-  # DATABASE_URL w secrets.yml
-  DB_HOST: postgres
-  DB_PORT: 5432
-  DB_NAME: default
-  DB_USER: pawel
-  DB_PASSWORD: Relisys17!
-  DEFAULT_DB_HOST: postgres
-  DEFAULT_DB_PORT: 5432
-  DEFAULT_DB_NAME: default
-  DEFAULT_DB_USER: pawel
-  DEFAULT_DB_PASSWORD: Relisys17!
-  WEB_AGENT_PORT: 5432
-  WEB_AGENT_NAME: web_agent
-  MATTERHORN1_DB_HOST: postgres
-  MATTERHORN1_DB_PORT: 5432
-  MATTERHORN1_DB_NAME: matterhorn1
-  MATTERHORN1_DB_USER: pawel
-  MATTERHORN1_DB_PASSWORD: Relisys17!
-  MPD_DB_HOST: postgres
-  MPD_DB_PORT: 5432
-  MPD_DB_NAME: MPD
-  MPD_DB_USER: pawel
-  MPD_DB_PASSWORD: Relisys17!
-  WEB_AGENT_DB_HOST: postgres
-  WEB_AGENT_DB_PORT: 5432
-  WEB_AGENT_DB_NAME: web_agent
-  WEB_AGENT_DB_USER: pawel
-  WEB_AGENT_DB_PASSWORD: Relisys17!
-  REDIS_HOST: redis
-  REDIS_PORT: 6379
-  REDIS_DB: 0
-  CELERY_BROKER_URL: "redis://:${REDIS_PASSWORD}@${REDIS_HOST}:${REDIS_PORT}/${REDIS_DB}"
-  CELERY_RESULT_BACKEND: "redis://:${REDIS_PASSWORD}@${REDIS_HOST}:${REDIS_PORT}/${REDIS_DB}"
-  MINIO_API_PORT: "9100"
-  MINIO_CONSOLE_PORT: "9101"
-  MINIO_VERIFY_SSL: "false"
-  # Qdrant vector database connection
-  QDRANT_HOST: qdrant  # Nazwa kontenera w Docker network
-  QDRANT_PORT: 6333  # HTTP API port
-  QDRANT_GRPC_PORT: 6334  # gRPC port
-  QDRANT_URL: "http://qdrant:6333"  # Full URL dla HTTP API
-  # QDRANT_API_KEY będzie dodany automatycznie z secrets.yml jeśli jest ustawiony
+# Takeover - pozwól Ansible przejąć zarządzanie istniejącymi kontenerami
+portainer_takeover: true
+nginx_proxy_manager_takeover: true

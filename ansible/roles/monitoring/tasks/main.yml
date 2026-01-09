@@ -5,9 +5,24 @@
   changed_when: false
   failed_when: false
 
-- name: Remove existing Netdata container if exists
-  command: docker rm -f {{ monitoring_container_name }}
+- name: Check if Netdata is running
+  shell: docker ps --format '{{ '{{' }}.Names{{ '}}' }}' --filter "name={{ monitoring_container_name }}"
+  register: netdata_running
+  changed_when: false
+  failed_when: false
   when: netdata_exists.stdout != ""
+
+- name: Check if port 19999 is already in use
+  shell: ss -tuln | grep -q ":19999" && echo "in_use" || echo "free"
+  register: port_check
+  changed_when: false
+  failed_when: false
+
+- name: Remove existing Netdata container if exists (only if not running)
+  command: docker rm -f {{ monitoring_container_name }}
+  when: 
+    - netdata_exists.stdout != ""
+    - netdata_running.stdout == ""
 
 - name: Ensure Netdata go.d directory exists
   file:
@@ -80,5 +95,8 @@
     --security-opt apparmor=unconfined
     --restart unless-stopped
     {{ monitoring_image }}
-  when: monitoring_install | default(true)
+  when: 
+    - monitoring_install | default(true)
+    - (netdata_running is not defined or netdata_running.stdout is not defined or netdata_running.stdout == "")
+    - port_check.stdout != "in_use"
 

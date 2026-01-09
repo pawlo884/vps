@@ -11,10 +11,27 @@ services:
     volumes:
       - {{ nginx_proxy_manager_data_dir }}:/data
       - {{ nginx_proxy_manager_letsencrypt_dir }}:/etc/letsencrypt
-    extra_hosts:
-      - "host.docker.internal:172.17.0.1"
     networks:
       - {{ nginx_proxy_manager_network }}
+    healthcheck:
+      test: ["CMD-SHELL", "timeout 1 bash -c '</dev/tcp/localhost/81' || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    logging:
+      driver: "json-file"
+      options:
+        max-file: "3"
+        max-size: "50m"
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
 
 networks:
   {{ nginx_proxy_manager_network }}:

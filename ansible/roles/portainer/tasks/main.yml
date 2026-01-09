@@ -51,8 +51,11 @@
     project_src: "{{ portainer_compose_dir_expanded }}"
     state: present
     recreate: auto
+    remove_orphans: yes
   become_user: "{{ vps_user }}"
   environment:
     COMPOSE_PROJECT_NAME: portainer
-  when: portainer_install | default(true)
+  when: 
+    - portainer_install | default(true)
+    - portainer_takeover | default(false) or portainer_running.stdout == ""
 

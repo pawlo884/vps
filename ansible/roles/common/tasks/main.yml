@@ -48,7 +48,7 @@
   when: docker_install | default(false)
 
 - name: Configure UFW firewall
-  ufw:
+  community.general.ufw:
     rule: allow
     port: "{{ item.port }}"
     proto: "{{ item.proto }}"
@@ -57,7 +57,7 @@
   when: ufw_allowed_ports is defined
 
 - name: Set UFW defaults
-  ufw:
+  community.general.ufw:
     direction: "{{ item.direction }}"
     policy: "{{ item.policy }}"
   loop:
@@ -71,12 +71,12 @@
       }
 
 - name: Enable UFW
-  ufw:
+  community.general.ufw:
     state: enabled
 
 # Hardening: sysctl
 - name: Configure sysctl (vm.swappiness)
-  sysctl:
+  ansible.posix.sysctl:
     name: vm.swappiness
     value: "{{ sysctl_swappiness | default(10) }}"
     state: present

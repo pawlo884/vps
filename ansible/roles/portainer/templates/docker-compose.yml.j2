@@ -10,6 +10,21 @@ services:
       - {{ portainer_data_dir }}:/data
     networks:
       - {{ portainer_network }}
+    # Healthcheck usunięty - obraz Portainera jest zbyt minimalny (brak /bin/sh, wget, curl)
+    # Polegamy na restart policy i limitach zasobów
+    logging:
+      driver: "json-file"
+      options:
+        max-file: "3"
+        max-size: "50m"
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
 
 networks:
   {{ portainer_network }}:

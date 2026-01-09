@@ -5,14 +5,14 @@
   roles:
     - common
     - fail2ban
-    - wifi
+    - { role: wifi, when: wifi_configure | default(false) }
     - web
     - db
-    - storage
+    - { role: storage, when: storage_enable | default(false) }
     - postgres
     - postgres-test
     - qdrant
-    - proxy
+    - nginx-proxy-manager
     - backups
     - monitoring
     - prometheus
