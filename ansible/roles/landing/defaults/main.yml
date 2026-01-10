@@ -1,0 +1,20 @@
+---
+# Landing page configuration
+landing_install: true
+landing_use_nextjs: true  # Jeśli true - używa Next.js, jeśli false - używa nginx z statycznymi plikami
+landing_image: node:20-alpine  # Używany tylko jeśli landing_use_nextjs: false
+landing_container_name: landing
+landing_port: 3000  # Next.js domyślnie na porcie 3000
+landing_compose_dir: ~/stacks/landing
+landing_network: nginx_proxy_manager_network  # Używa sieci Nginx Proxy Manager
+
+# Git repository dla landing page (opcjonalnie)
+# Jeśli podane - klonuje repo i używa plików z repo
+# Jeśli puste - używa szablonów Ansible
+landing_repo_url: ""  # np. git@github.com:pawlo884/sowa-landing.git
+landing_repo_branch: main
+landing_repo_dir: ~/landing-page  # Katalog gdzie będzie sklonowane repo
+
+# Lista aplikacji do wyświetlenia (używane tylko jeśli repo nie jest podane)
+# Jeśli używasz repo, konfiguruj aplikacje w repo (np. apps.json)
+landing_applications: []

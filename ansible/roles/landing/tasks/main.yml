@@ -1,0 +1,233 @@
+---
+- name: Set landing compose directory
+  set_fact:
+    landing_compose_dir_expanded: "{{ (landing_compose_dir | default('/home/' + vps_user + '/stacks/landing')) | regex_replace('^~', '/home/' + vps_user) }}"
+
+- name: Set landing repo directory
+  set_fact:
+    landing_repo_dir_expanded: "{{ (landing_repo_dir | default('/home/' + vps_user + '/landing-page')) | regex_replace('^~', '/home/' + vps_user) }}"
+
+- name: Check if landing repo URL is provided
+  set_fact:
+    landing_use_repo: "{{ landing_repo_url | default('') != '' }}"
+
+- name: Ensure Landing directories exist
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ vps_user }}"
+    group: "{{ vps_user }}"
+    mode: '0755'
+  loop:
+    - "{{ landing_compose_dir_expanded }}"
+    - "{{ landing_compose_dir_expanded }}/html"
+    - "{{ landing_compose_dir_expanded }}/nginx"
+  when: landing_install | default(true)
+
+# Sekcja: Klonowanie repo (jeśli podane)
+
+- name: Ensure landing repo directory exists
+  file:
+    path: "{{ landing_repo_dir_expanded }}"
+    state: directory
+    owner: "{{ vps_user }}"
+    group: "{{ vps_user }}"
+    mode: '0755'
+  when: 
+    - landing_install | default(true)
+    - landing_use_repo
+
+- name: Check if landing repository already exists
+  stat:
+    path: "{{ landing_repo_dir_expanded }}/.git"
+  register: landing_git_dir
+  when: 
+    - landing_install | default(true)
+    - landing_use_repo
+
+- name: Clone landing page repository
+  git:
+    repo: "{{ landing_repo_url }}"
+    dest: "{{ landing_repo_dir_expanded }}"
+    version: "{{ landing_repo_branch }}"
+    update: yes
+    force: yes
+  become_user: "{{ vps_user }}"
+  when: 
+    - landing_install | default(true)
+    - landing_use_repo
+    - landing_git_dir.stat.exists == false
+  ignore_errors: yes
+
+- name: Update landing page repository
+  git:
+    repo: "{{ landing_repo_url }}"
+    dest: "{{ landing_repo_dir_expanded }}"
+    version: "{{ landing_repo_branch }}"
+    update: yes
+    force: yes
+  become_user: "{{ vps_user }}"
+  when: 
+    - landing_install | default(true)
+    - landing_use_repo
+    - landing_git_dir.stat.exists == true
+
+# Sekcja: Kopiowanie statycznych plików HTML (tylko jeśli NIE używa Next.js)
+- name: Copy HTML files from repository to html directory (only for static HTML mode)
+  shell: |
+    cd {{ landing_repo_dir_expanded }}
+    find . -type f \( -name "*.html" -o -name "*.css" -o -name "*.js" -o -name "*.json" -o -name "*.png" -o -name "*.jpg" -o -name "*.jpeg" -o -name "*.gif" -o -name "*.svg" -o -name "*.ico" -o -name "*.woff" -o -name "*.woff2" -o -name "*.ttf" -o -name "*.eot" \) \
+      ! -path "./.git/*" \
+      ! -name ".gitignore" \
+      ! -name "README.md" \
+      ! -name ".dockerignore" \
+      -exec cp --parents {} {{ landing_compose_dir_expanded }}/html/ \;
+  become_user: "{{ vps_user }}"
+  when: 
+    - landing_install | default(true)
+    - landing_use_repo
+    - not (landing_use_nextjs | default(false))
+  ignore_errors: yes
+
+- name: Set correct permissions on copied files
+  file:
+    path: "{{ landing_compose_dir_expanded }}/html"
+    owner: "{{ vps_user }}"
+    group: "{{ vps_user }}"
+    mode: '0755'
+    recurse: yes
+  when: 
+    - landing_install | default(true)
+    - landing_use_repo
+    - not (landing_use_nextjs | default(false))
+
+# Sekcja: Generowanie z szablonów (fallback jeśli repo nie podane)
+- name: Generate nginx configuration (template fallback)
+  template:
+    src: nginx.conf.j2
+    dest: "{{ landing_compose_dir_expanded }}/nginx/nginx.conf"
+    owner: "{{ vps_user }}"
+    group: "{{ vps_user }}"
+    mode: '0644'
+  when: 
+    - landing_install | default(true)
+    - not landing_use_repo
+
+- name: Generate index.html from template (fallback)
+  template:
+    src: index.html.j2
+    dest: "{{ landing_compose_dir_expanded }}/html/index.html"
+    owner: "{{ vps_user }}"
+    group: "{{ vps_user }}"
+    mode: '0644'
+  when: 
+    - landing_install | default(true)
+    - not landing_use_repo
+
+# Sekcja: Nginx config z repo (jeśli istnieje)
+- name: Check if nginx.conf exists in repo
+  stat:
+    path: "{{ landing_repo_dir_expanded }}/nginx.conf"
+  register: landing_repo_nginx_config
+  when: 
+    - landing_install | default(true)
+    - landing_use_repo
+
+- name: Copy nginx.conf from repository
+  copy:
+    src: "{{ landing_repo_dir_expanded }}/nginx.conf"
+    dest: "{{ landing_compose_dir_expanded }}/nginx/nginx.conf"
+    owner: "{{ vps_user }}"
+    group: "{{ vps_user }}"
+    mode: '0644'
+  when: 
+    - landing_install | default(true)
+    - landing_use_repo
+    - landing_repo_nginx_config.stat.exists
+
+- name: Generate nginx configuration (default template if not in repo)
+  template:
+    src: nginx.conf.j2
+    dest: "{{ landing_compose_dir_expanded }}/nginx/nginx.conf"
+    owner: "{{ vps_user }}"
+    group: "{{ vps_user }}"
+    mode: '0644'
+  when: 
+    - landing_install | default(true)
+    - landing_use_repo
+    - not landing_repo_nginx_config.stat.exists
+
+# Sekcja: Dockerfile dla Next.js (jeśli używa Next.js i nie istnieje w repo)
+- name: Check if Dockerfile exists in repo
+  stat:
+    path: "{{ landing_repo_dir_expanded }}/Dockerfile"
+  register: landing_repo_dockerfile
+  when: 
+    - landing_install | default(true)
+    - landing_use_repo
+    - landing_use_nextjs | default(false)
+
+- name: Generate Dockerfile for Next.js
+  template:
+    src: Dockerfile.j2
+    dest: "{{ landing_repo_dir_expanded }}/Dockerfile"
+    owner: "{{ vps_user }}"
+    group: "{{ vps_user }}"
+    mode: '0644'
+  when: 
+    - landing_install | default(true)
+    - landing_use_repo
+    - landing_use_nextjs | default(false)
+    - not landing_repo_dockerfile.stat.exists
+
+- name: Update next.config.ts for standalone output
+  replace:
+    path: "{{ landing_repo_dir_expanded }}/next.config.ts"
+    regexp: '(const nextConfig: NextConfig = \{)(.*?)(\};)'
+    replace: '\1\n  output: "standalone",\2\n\3'
+  when: 
+    - landing_install | default(true)
+    - landing_use_repo
+    - landing_use_nextjs | default(false)
+  ignore_errors: yes
+
+- name: Ensure next.config.ts has standalone output (alternative method)
+  lineinfile:
+    path: "{{ landing_repo_dir_expanded }}/next.config.ts"
+    regexp: '^(\s*)output:'
+    line: '  output: "standalone",'
+    insertafter: 'const nextConfig: NextConfig = {'
+    state: present
+  when: 
+    - landing_install | default(true)
+    - landing_use_repo
+    - landing_use_nextjs | default(false)
+  ignore_errors: yes
+
+- name: Generate docker-compose.yml for Landing
+  template:
+    src: docker-compose.yml.j2
+    dest: "{{ landing_compose_dir_expanded }}/docker-compose.yml"
+    owner: "{{ vps_user }}"
+    group: "{{ vps_user }}"
+    mode: "0644"
+  when: landing_install | default(true)
+  vars:
+    landing_repo_dir_expanded: "{{ landing_repo_dir_expanded }}"
+
+- name: Ensure Docker network exists (for Landing connection to proxy)
+  community.docker.docker_network:
+    name: "{{ landing_network }}"
+    state: present
+  when: landing_install | default(true)
+
+- name: Start Landing container
+  community.docker.docker_compose_v2:
+    project_src: "{{ landing_compose_dir_expanded }}"
+    state: present
+    recreate: auto
+    remove_orphans: yes
+  become_user: "{{ vps_user }}"
+  environment:
+    COMPOSE_PROJECT_NAME: landing
+  when: landing_install | default(true)

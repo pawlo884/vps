@@ -11,6 +11,7 @@ services:
       - "{{ qdrant_data_dir }}:/qdrant/storage"
     networks:
       - {{ qdrant_network }}
+      - nginx_proxy_manager_network  # Połącz z siecią NPM
     environment:
       QDRANT__SERVICE__HTTP_PORT: 6333
       QDRANT__SERVICE__GRPC_PORT: 6334
@@ -36,5 +37,8 @@ services:
 networks:
   {{ qdrant_network }}:
     name: "{{ qdrant_network }}"
+    external: true
+  nginx_proxy_manager_network:
+    name: nginx_proxy_manager_network
     external: true
 

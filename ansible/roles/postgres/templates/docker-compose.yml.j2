@@ -75,6 +75,7 @@ services:
       - "{{ pgadmin_port }}:80"
     networks:
       - "{{ postgres_network }}"
+      - nginx_proxy_manager_network  # Połącz z siecią NPM
     depends_on:
 {% for instance in postgres_instances %}
       - postgres_{{ instance.name }}
@@ -84,4 +85,7 @@ services:
 networks:
   {{ postgres_network }}:
     name: "{{ postgres_network }}"
+  nginx_proxy_manager_network:
+    name: nginx_proxy_manager_network
+    external: true
 
