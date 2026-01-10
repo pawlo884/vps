@@ -41,6 +41,9 @@ postgres_test_password: "testpass123"  # Zmień w secrets.yml!
 # PostgreSQL instances secrets (dla prometheus i monitoring)
 postgres_instances_secrets: []
 
+# pgAdmin configuration
+pgadmin_install: true  # Włącz pgAdmin (można zmienić w secrets.yml)
+
 # Takeover - pozwól Ansible przejąć zarządzanie istniejącymi kontenerami
 portainer_takeover: true
 nginx_proxy_manager_takeover: true

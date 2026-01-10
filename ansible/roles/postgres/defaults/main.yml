@@ -29,4 +29,6 @@ pgadmin_install: false
 pgadmin_image: dpage/pgadmin4:latest
 pgadmin_port: 5050
 pgadmin_data_dir: /srv/pgadmin/data
+pgadmin_email: admin@example.com  # Zmień w secrets.yml!
+pgadmin_password: change_me_pgadmin  # Zmień w secrets.yml!
 

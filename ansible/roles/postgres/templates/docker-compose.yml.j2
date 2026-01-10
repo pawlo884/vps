@@ -69,6 +69,8 @@ services:
       PGADMIN_DEFAULT_PASSWORD: "{{ pgadmin_password }}"
       PGADMIN_CONFIG_SERVER_MODE: "False"
       PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: "False"
+      PGADMIN_CONFIG_PROXY_X_FOR_COUNT: "1"  # Obsługa reverse proxy (X-Forwarded-For)
+      PGADMIN_CONFIG_PROXY_X_PROTO_COUNT: "1"  # Obsługa reverse proxy (X-Forwarded-Proto)
     volumes:
       - "{{ pgadmin_data_dir }}:/var/lib/pgadmin"
     ports:

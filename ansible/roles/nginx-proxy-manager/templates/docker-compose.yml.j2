@@ -13,6 +13,8 @@ services:
       - {{ nginx_proxy_manager_letsencrypt_dir }}:/etc/letsencrypt
     networks:
       - {{ nginx_proxy_manager_network }}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"  # Umożliwia dostęp do hosta z kontenera (dla self-hosting)
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:81/api/ || curl -f http://localhost:81/api/ || exit 1"]
       interval: 30s
