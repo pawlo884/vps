@@ -1,0 +1,11 @@
+[Unit]
+Description=Wake on LAN Auto Wake Timer - sprawdza co 10 sekund
+Requires=wol-auto-wake.service
+
+[Timer]
+OnBootSec=30s
+OnUnitActiveSec=10s
+AccuracySec=1s
+
+[Install]
+WantedBy=timers.target
