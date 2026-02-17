@@ -1,0 +1,14 @@
+[Unit]
+Description=Docker cotygodniowe czyszczenie (build cache + nieużywane obrazy)
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/docker-weekly-cleanup.sh
+User=root
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
