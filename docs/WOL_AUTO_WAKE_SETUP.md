@@ -6,7 +6,20 @@ Urządzenie `192.168.50.63` z aplikacjami (porty 8090, 8501) uśpia się automat
 
 ## Rozwiązanie
 
-Systemd timer monitoruje logi NPM w czasie rzeczywistym. Gdy wykryje błąd 502 dla `192.168.50.63`, automatycznie wysyła pakiet Wake on LAN aby obudzić urządzenie.
+Usługa systemd **nasłuchuje logów NPM w czasie rzeczywistym** (`docker logs -f`). Gdy w logu pojawi się błąd 502/Bad Gateway dla `192.168.50.63`, wysyła pakiet Wake on LAN. **Bez pollingu** – reakcja tylko na żądanie (gdy ktoś wejdzie na stronę i dostanie 502).
+
+## Migracja z wersji z timerem (co 10 s)
+
+Jeśli wcześniej używałeś timera:
+
+```bash
+sudo systemctl stop wol-auto-wake.timer
+sudo systemctl disable wol-auto-wake.timer
+# Skopiuj nowy skrypt i service (Krok 4 poniżej), potem:
+sudo systemctl daemon-reload
+sudo systemctl enable wol-auto-wake.service
+sudo systemctl start wol-auto-wake.service
+```
 
 ## Instalacja
 
@@ -61,9 +74,8 @@ PORTS=(8090 8501)  # Zmień na swoje porty
 sudo cp /opt/vps/scripts/wol-auto-wake.sh /usr/local/bin/
 sudo chmod +x /usr/local/bin/wol-auto-wake.sh
 
-# Skopiuj systemd files
+# Skopiuj jednostkę systemd (timer nie jest używany – budzenie na żądanie)
 sudo cp /opt/vps/scripts/wol-auto-wake.service /etc/systemd/system/
-sudo cp /opt/vps/scripts/wol-auto-wake.timer /etc/systemd/system/
 ```
 
 ### Krok 5: Utwórz katalog logów (jeśli nie istnieje)
@@ -73,47 +85,42 @@ sudo touch /var/log/wol-auto-wake.log
 sudo chmod 644 /var/log/wol-auto-wake.log
 ```
 
-### Krok 6: Załaduj i uruchom systemd
+### Krok 6: Załaduj i uruchom usługę
 
 ```bash
 # Przeładuj systemd
 sudo systemctl daemon-reload
 
-# Włącz timer (uruchamia się automatycznie przy starcie)
-sudo systemctl enable wol-auto-wake.timer
-
-# Uruchom timer teraz
-sudo systemctl start wol-auto-wake.timer
+# Włącz i uruchom usługę (działa w tle, nasłuchuje logów NPM)
+sudo systemctl enable wol-auto-wake.service
+sudo systemctl start wol-auto-wake.service
 
 # Sprawdź status
-sudo systemctl status wol-auto-wake.timer
+sudo systemctl status wol-auto-wake.service
 ```
 
 ### Krok 7: Sprawdź działanie
 
 ```bash
-# Sprawdź status timera
-sudo systemctl status wol-auto-wake.timer
+# Sprawdź status usługi
+sudo systemctl status wol-auto-wake.service
 
-# Sprawdź logi serwisu
+# Logi na żywo (journal)
 sudo journalctl -u wol-auto-wake.service -f
 
-# Sprawdź logi skryptu
+# Logi skryptu (plik)
 sudo tail -f /var/log/wol-auto-wake.log
-
-# Test - uruchom skrypt ręcznie
-sudo /usr/local/bin/wol-auto-wake.sh
 ```
 
 ## Jak to działa
 
-1. **Timer uruchamia się co 10 sekund** (`OnUnitActiveSec=10s`)
-2. **Serwis sprawdza logi NPM** z ostatnich 15 sekund
-3. **Jeśli wykryje 502/Bad Gateway** dla `192.168.50.63`:
-   - Sprawdza czy urządzenie rzeczywiście nie odpowiada (test połączenia TCP)
+1. **Usługa działa w tle** i uruchamia `docker logs -f` na kontenerze NPM (tylko nowe linie).
+2. **Gdy w logu pojawi się linia** z 502/Bad Gateway/Connection refused **oraz** adresem `192.168.50.63`:
+   - Sprawdza, czy urządzenie rzeczywiście nie odpowiada (test TCP na portach 8090, 8501)
    - Jeśli nie odpowiada → wysyła pakiet WoL
    - Czeka 30 sekund na obudzenie
-4. **Lock file** zapobiega wielokrotnemu budzeniu w ciągu 90 sekund
+3. **Cooldown 90 s** – nie budzi ponownie w ciągu 90 sekund od ostatniego WoL.
+4. **Bez pollingu** – zero sprawdzeń co X sekund; reakcja tylko gdy NPM zaloguje 502 (czyli gdy ktoś wejdzie na stronę i dostanie błąd).
 
 ## Konfiguracja NPM - zwiększ timeouty
 
@@ -156,21 +163,20 @@ To daje czas na obudzenie urządzenia (30-60 sekund) zanim NPM zwróci błąd 50
 
 ## Testowanie
 
-### Test 1: Sprawdź czy timer działa
+### Test 1: Sprawdź czy usługa działa
 
 ```bash
-# Sprawdź status timera
-systemctl status wol-auto-wake.timer
+# Sprawdź status usługi
+systemctl status wol-auto-wake.service
 
-# Sprawdź kiedy ostatnio się uruchomił
-systemctl list-timers wol-auto-wake.timer
+# Powinna być aktywna (active/running) i nasłuchiwać logów
 ```
 
 ### Test 2: Symuluj błąd 502
 
 1. Upewnij się że urządzenie `192.168.50.63` jest uśpione
 2. Spróbuj wejść na domenę przez NPM (powinien być 502)
-3. Poczekaj 10-30 sekund
+3. W ciągu chwili (reakcja na log 502)
 4. Sprawdź logi:
    ```bash
    sudo tail -f /var/log/wol-auto-wake.log
@@ -193,19 +199,19 @@ sudo etherwake -i "$INTERFACE" AA:BB:CC:DD:EE:FF
 
 ## Rozwiązywanie problemów
 
-### Problem: Timer nie uruchamia się
+### Problem: Usługa nie uruchamia się
 
 ```bash
 # Sprawdź status
-sudo systemctl status wol-auto-wake.timer
+sudo systemctl status wol-auto-wake.service
 
-# Sprawdź czy jest włączony
-sudo systemctl is-enabled wol-auto-wake.timer
+# Sprawdź czy jest włączona
+sudo systemctl is-enabled wol-auto-wake.service
 
 # Przeładuj systemd i włącz ponownie
 sudo systemctl daemon-reload
-sudo systemctl enable wol-auto-wake.timer
-sudo systemctl start wol-auto-wake.timer
+sudo systemctl enable wol-auto-wake.service
+sudo systemctl start wol-auto-wake.service
 ```
 
 ### Problem: WoL nie działa
@@ -259,13 +265,12 @@ Lock zapobiega budzeniu w ciągu 90 sekund od ostatniego budzenia.
 ## Deinstalacja
 
 ```bash
-# Zatrzymaj i wyłącz timer
-sudo systemctl stop wol-auto-wake.timer
-sudo systemctl disable wol-auto-wake.timer
+# Zatrzymaj i wyłącz usługę
+sudo systemctl stop wol-auto-wake.service
+sudo systemctl disable wol-auto-wake.service
 
-# Usuń pliki systemd
+# Usuń plik systemd
 sudo rm /etc/systemd/system/wol-auto-wake.service
-sudo rm /etc/systemd/system/wol-auto-wake.timer
 
 # Przeładuj systemd
 sudo systemctl daemon-reload
@@ -291,8 +296,8 @@ sudo rm /var/log/wol-auto-wake.log
 ## Przykładowy przepływ
 
 1. **Użytkownik wchodzi na domenę** → NPM próbuje połączyć z `192.168.50.63:8090`
-2. **Urządzenie śpi** → NPM zwraca 502 Bad Gateway
-3. **Timer (co 10s) sprawdza logi NPM** → Wykrywa 502 dla `192.168.50.63`
+2. **Urządzenie śpi** → NPM zwraca 502 Bad Gateway i zapisuje to w logu
+3. **Usługa czyta log w czasie rzeczywistym** → Wykrywa linię z 502 dla `192.168.50.63`
 4. **Skrypt sprawdza urządzenie** → Nie odpowiada na porcie 8090 ani 8501
 5. **Skrypt wysyła WoL** → Pakiet magic packet wysłany do MAC
 6. **Urządzenie się budzi** → Boot systemu + uruchomienie Docker/konternerów (30-60 sekund)
