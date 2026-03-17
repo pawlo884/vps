@@ -1,0 +1,31 @@
+# Django settings
+DEBUG={{ app_env_vars.DEBUG }}
+SECRET_KEY={{ app_env_vars.SECRET_KEY }}
+ALLOWED_HOSTS={{ app_env_vars.ALLOWED_HOSTS | default('*') }}
+
+# Database
+DATABASE_URL={{ app_env_vars.DATABASE_URL }}
+DB_HOST={{ app_env_vars.DB_HOST | default(app_db_host) }}  # Nazwa serwisu w docker-compose (postgres)
+DB_PORT={{ app_env_vars.DB_PORT | default(app_db_port) }}
+DB_NAME={{ app_env_vars.DB_NAME | default(app_db_name) }}
+DB_USER={{ app_env_vars.DB_USER | default(app_db_user) }}
+DB_PASSWORD={{ app_env_vars.DB_PASSWORD | default(app_db_password) }}
+
+# Django settings używa DEFAULT_DB_* zmiennych
+DEFAULT_DB_HOST={{ app_env_vars.DEFAULT_DB_HOST | default(app_db_host) }}
+DEFAULT_DB_PORT={{ app_env_vars.DEFAULT_DB_PORT | default(app_db_port) }}
+DEFAULT_DB_NAME={{ app_env_vars.DEFAULT_DB_NAME | default(app_db_name) }}
+DEFAULT_DB_USER={{ app_env_vars.DEFAULT_DB_USER | default(app_db_user) }}
+DEFAULT_DB_PASSWORD={{ app_env_vars.DEFAULT_DB_PASSWORD | default(app_db_password) }}
+
+{% if app_env_vars is defined %}
+{% for key, value in app_env_vars.items() %}
+{% if key not in [
+  'DEBUG','SECRET_KEY','DATABASE_URL','ALLOWED_HOSTS',
+  'DB_HOST','DB_PORT','DB_NAME','DB_USER','DB_PASSWORD',
+  'DEFAULT_DB_HOST','DEFAULT_DB_PORT','DEFAULT_DB_NAME','DEFAULT_DB_USER','DEFAULT_DB_PASSWORD'
+] %}
+{{ key }}={{ value }}
+{% endif %}
+{% endfor %}
+{% endif %}

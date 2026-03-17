@@ -1,0 +1,11 @@
+---
+- hosts: web
+  become: true
+  vars_files:
+    - "{{ inventory_dir }}/group_vars/secrets.yml"
+  roles:
+    - postgres
+    - postgres-test
+    - backups
+
+

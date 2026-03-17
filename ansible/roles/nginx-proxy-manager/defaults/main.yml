@@ -1,0 +1,13 @@
+---
+# Nginx Proxy Manager configuration
+nginx_proxy_manager_install: true
+nginx_proxy_manager_takeover: false  # Ustaw na true aby przejąć istniejący NPM
+nginx_proxy_manager_container_name: nginx-proxy-manager
+nginx_proxy_manager_image: jc21/nginx-proxy-manager:latest
+nginx_proxy_manager_http_port: 80
+nginx_proxy_manager_https_port: 443
+nginx_proxy_manager_admin_port: 81
+nginx_proxy_manager_data_dir: /srv/nginx-proxy-manager/data  # Na sda (system)
+nginx_proxy_manager_letsencrypt_dir: /srv/nginx-proxy-manager/letsencrypt  # Na sda (system)
+nginx_proxy_manager_compose_dir: ~/stacks/nginx-proxy-manager
+nginx_proxy_manager_network: nginx_proxy_manager_network

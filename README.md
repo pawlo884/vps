@@ -1,93 +1,303 @@
-# vps
+# Infra VPS - Repozytorium konfiguracji
 
+Repozytorium z ustawieniami i automatyzacją dla VPS używając Ansible.
 
+## ❓ Jak to działa?
 
-## Getting started
+**Ansible działa na twoim lokalnym komputerze**, a nie na VPS. To narzędzie typu "control node" - łączy się z VPS przez SSH i wykonuje na nim komendy.
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+**Przepływ pracy:**
+1. Twój komputer (z Ansible) → SSH → VPS
+2. Ansible wysyła komendy przez SSH (np. `apt install`, `systemctl start`)
+3. VPS wykonuje komendy i zwraca wyniki
+4. **Na VPS potrzebny jest tylko Python 3** (do wykonywania modułów Ansible)
+5. **Ansible jako narzędzie NIE musi być na VPS** - tylko na lokalnym komputerze
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+**Wymagania na VPS:**
+- ✅ SSH (zwykle już jest)
+- ✅ Python 3 (Ansible automatycznie go instaluje jeśli brakuje)
+- ❌ Ansible jako narzędzie NIE jest potrzebny na VPS
 
-## Add your files
+**Alternatywy (bez Ansible):**
+- Ręczne połączenie SSH i wykonywanie komend jedna po drugiej
+- Wysyłanie skryptów bash przez `scp` i uruchamianie ich na VPS
 
-* [Create](https://docs.gitlab.com/user/project/repository/web_editor/#create-a-file) or [upload](https://docs.gitlab.com/user/project/repository/web_editor/#upload-a-file) files
-* [Add files using the command line](https://docs.gitlab.com/topics/git/add_files/#add-files-to-a-git-repository) or push an existing Git repository with the following command:
+**Dlaczego Ansible?**
+- ✅ Automatyzacja - wszystkie zmiany w jednym playbook
+- ✅ Powtarzalność - zawsze ten sam wynik
+- ✅ Bezpieczeństwo - możesz sprawdzić zmiany przed wprowadzeniem (`--check`)
+- ✅ Dokumentacja - konfiguracja jest w kodzie (version control)
+
+## 🚀 Szybki start
+
+### 1. Instalacja Ansible (TYLKO na lokalnym komputerze, nie na VPS!)
+
+**Linux/Ubuntu:**
+```bash
+sudo apt-get update
+sudo apt-get install ansible
+```
+
+**macOS:**
+```bash
+brew install ansible
+```
+
+**Windows:**
+```bash
+# Przez WSL lub użyj Ansible w Dockerze
+```
+
+### 2. Konfiguracja klucza SSH
+
+Upewnij się, że masz skonfigurowany klucz SSH i możesz łączyć się z VPS bez hasła:
+
+```bash
+# Jeśli nie masz klucza, wygeneruj:
+ssh-keygen -t ed25519 -C "twoj@email.com"
+
+# Skopiuj klucz publiczny na VPS:
+ssh-copy-id pawel@192.168.50.31
+
+# Lub ręcznie:
+cat ~/.ssh/id_ed25519.pub | ssh pawel@192.168.50.31 "mkdir -p ~/.ssh && cat >> ~/.ssh/authorized_keys"
+```
+
+### 3. Sprawdzenie połączenia
+
+```bash
+# Użyj skryptu pomocniczego:
+./scripts/check-vps.sh
+
+# Lub bezpośrednio:
+cd ansible
+ansible all -m ping
+```
+
+### 4. Pierwsze uruchomienie playbook
+
+```bash
+# Sprawdź co zostanie zmienione (dry-run):
+./scripts/dry-run.sh
+
+# Uruchom pełną konfigurację:
+./scripts/run-ansible.sh
+```
+
+## 📁 Struktura
 
 ```
-cd existing_repo
-git remote add origin https://gitlab.com/pawlo884/vps.git
-git branch -M main
-git push -uf origin main
+vps/
+├── ansible/
+│   ├── ansible.cfg           # Konfiguracja Ansible
+│   ├── inventories/
+│   │   └── prod/
+│   │       ├── hosts.ini     # Hosty (IP, użytkownik)
+│   │       └── group_vars/
+│   │           └── all.yml   # Zmienne konfiguracyjne
+│   ├── playbooks/
+│   │   └── site.yml         # Główny playbook
+│   └── roles/
+│       ├── common/          # Hardening, firewall, podstawowe pakiety
+│       ├── web/             # Nginx
+│       └── db/              # PostgreSQL client
+├── files/                   # Snapshoty aktualnych configów
+│   └── systemd/
+├── scripts/                 # Skrypty pomocnicze
+│   ├── run-ansible.sh       # Uruchom playbook
+│   ├── check-vps.sh         # Sprawdź połączenie
+│   ├── dry-run.sh           # Dry-run przed zmianami
+│   └── ssh-vps.sh           # Połącz się z VPS przez SSH
+└── README.md
 ```
 
-## Integrate with your tools
+## 🛠️ Zarządzanie VPS
 
-* [Set up project integrations](https://gitlab.com/pawlo884/vps/-/settings/integrations)
+### Podstawowe komendy
 
-## Collaborate with your team
+**Sprawdzenie połączenia:**
+```bash
+./scripts/check-vps.sh
+```
 
-* [Invite team members and collaborators](https://docs.gitlab.com/user/project/members/)
-* [Create a new merge request](https://docs.gitlab.com/user/project/merge_requests/creating_merge_requests/)
-* [Automatically close issues from merge requests](https://docs.gitlab.com/user/project/issues/managing_issues/#closing-issues-automatically)
-* [Enable merge request approvals](https://docs.gitlab.com/user/project/merge_requests/approvals/)
-* [Set auto-merge](https://docs.gitlab.com/user/project/merge_requests/auto_merge/)
+**Sprawdzenie zmian przed wprowadzeniem (dry-run):**
+```bash
+./scripts/dry-run.sh
+```
 
-## Test and Deploy
+**Uruchomienie pełnej konfiguracji:**
+```bash
+./scripts/run-ansible.sh
+```
 
-Use the built-in continuous integration in GitLab.
+**Połączenie z VPS przez SSH:**
+```bash
+./scripts/ssh-vps.sh
+```
 
-* [Get started with GitLab CI/CD](https://docs.gitlab.com/ci/quick_start/)
-* [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/user/application_security/sast/)
-* [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/topics/autodevops/requirements/)
-* [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/user/clusters/agent/)
-* [Set up protected environments](https://docs.gitlab.com/ci/environments/protected_environments/)
+### Bezpośrednie użycie Ansible
 
-***
+Jeśli wolisz używać Ansible bezpośrednio:
 
-# Editing this README
+```bash
+cd ansible
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
+# Ping do VPS
+ansible all -m ping
 
-## Suggestions for a good README
+# Sprawdzenie zmian (dry-run)
+ansible-playbook playbooks/site.yml --check --diff
 
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+# Uruchomienie playbook
+ansible-playbook playbooks/site.yml
 
-## Name
-Choose a self-explaining name for your project.
+# Uruchomienie tylko wybranej roli
+ansible-playbook playbooks/site.yml --tags common
 
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
+# Sprawdzenie statusu usług
+ansible all -m shell -a "systemctl status nginx"
+```
 
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
+### Przykładowe zadania
 
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
+**Uruchomienie komendy na VPS:**
+```bash
+cd ansible
+ansible all -m shell -a "df -h"
+ansible all -m shell -a "docker ps"
+ansible all -m shell -a "systemctl status nginx"
+```
 
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
+**Aktualizacja tylko wybranych pakietów:**
+```bash
+cd ansible
+ansible-playbook playbooks/site.yml --tags common
+```
 
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
+## ⚙️ Konfiguracja
 
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
+### Zmiany IP/użytkownika VPS
 
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
+Edytuj `ansible/inventories/prod/hosts.ini`:
+```ini
+[web]
+vps ansible_host=192.168.50.31 ansible_user=pawel
+```
 
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
+Po zmianie sprawdź połączenie:
+```bash
+./scripts/check-vps.sh
+```
 
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
+### Sekrety i hasła
 
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
+**WAŻNE:** Hasła i sekrety są w osobnym pliku, który NIE jest commitowany:
+- `ansible/inventories/prod/group_vars/secrets.yml` - prawdziwe hasła (w .gitignore)
+- `ansible/inventories/prod/group_vars/secrets.yml.example` - przykład (commitowany)
 
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
+**Pierwsza konfiguracja:**
+```bash
+cd ansible/inventories/prod/group_vars
+cp secrets.yml.example secrets.yml
+# Edytuj secrets.yml i uzupełnij hasła
+```
 
-## License
-For open source projects, say how it is licensed.
+### Zmiany ustawień (porty, pakiety, itp.)
 
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+Edytuj `ansible/inventories/prod/group_vars/all.yml`:
+
+```yaml
+# Firewall - dodaj/usuń porty
+ufw_allowed_ports:
+  - { port: 22, proto: tcp, comment: "SSH" }
+  - { port: 80, proto: tcp, comment: "HTTP" }
+  - { port: 443, proto: tcp, comment: "HTTPS" }
+
+# Pakiety - dodaj/usuń
+base_packages:
+  - git
+  - curl
+  - wget
+  # ...
+```
+
+Po zmianach uruchom:
+```bash
+./scripts/dry-run.sh  # sprawdź zmiany
+./scripts/run-ansible.sh  # wprowadź zmiany
+```
+
+## 🔒 Bezpieczeństwo
+
+⚠️ **NIE commitować**:
+- Hasła/sekrety
+- Klucze prywatne (.key, .pem)
+- Pliki .env
+- Dane wrażliwe w `group_vars/`
+
+**Dla sekretów użyj:**
+- Ansible Vault
+- SOPS + age
+- Zmienne środowiskowe
+
+**Obecna konfiguracja:**
+- SSH tylko na klucz (brak haseł)
+- Firewall UFW (domyślnie blokuje przychodzące)
+- Fail2ban (ochrona przed brute-force)
+- Automatyczne aktualizacje bezpieczeństwa
+
+## 📝 Co robi playbook?
+
+### Rola `common`:
+- Aktualizuje cache apt
+- Instaluje podstawowe pakiety (git, curl, wget, htop, ufw, fail2ban, itp.)
+- Konfiguruje automatyczne aktualizacje bezpieczeństwa
+- Konfiguruje firewall UFW (porty 22, 80, 443)
+
+### Rola `web`:
+- Instaluje i konfiguruje Nginx
+- Włącza i uruchamia usługę Nginx
+- Testuje konfigurację przed restartem
+
+### Rola `db`:
+- Instaluje PostgreSQL client (do zarządzania bazami)
+
+## 📌 FAQ
+
+**Q: Zainstalowałem Ansible na VPS - czy to potrzebne?**  
+A: Nie - Ansible jako narzędzie działa tylko na lokalnym komputerze. Na VPS potrzebny jest tylko Python 3 (który jest już w `base_packages`). Możesz usunąć Ansible z VPS:
+```bash
+ssh pawel@192.168.50.31
+sudo apt remove ansible
+```
+
+**Q: Co dokładnie jest potrzebne na VPS?**  
+A: 
+- Python 3 (instaluje się automatycznie przez `base_packages`)
+- SSH (zwykle już jest)
+- Ansible jako narzędzie NIE jest potrzebny
+
+## 🐛 Rozwiązywanie problemów
+
+**Problem: "Host key checking failed"**
+- Rozwiązanie: już jest wyłączone w `ansible.cfg` (`host_key_checking = False`)
+
+**Problem: "Permission denied (publickey)"**
+- Rozwiązanie: upewnij się, że klucz SSH jest skopiowany na VPS:
+  ```bash
+  ssh-copy-id pawel@192.168.50.31
+  ```
+
+**Problem: "Connection refused"**
+- Sprawdź czy VPS działa i czy IP jest poprawne
+- Sprawdź firewall na VPS i routerze (port 22 musi być otwarty)
+
+**Problem: Playbook się nie uruchamia**
+- Sprawdź czy jesteś w odpowiednim katalogu
+- Użyj skryptów pomocniczych z katalogu `scripts/`
+
+## 📚 Więcej informacji
+
+- [Dokumentacja Ansible](https://docs.ansible.com/)
+- [UFW - Firewall](https://help.ubuntu.com/community/UFW)
+- [Nginx](https://nginx.org/en/docs/)

@@ -1,0 +1,23 @@
+- hosts: web
+  become: true
+  vars_files:
+    - "{{ inventory_dir }}/group_vars/secrets.yml"
+  roles:
+    - common
+    - fail2ban
+    - { role: wifi, when: wifi_configure | default(false) }
+    - web
+    - db
+    - { role: storage, when: storage_enable | default(false) }
+    - postgres
+    - postgres-test
+    - qdrant
+    - nginx-proxy-manager
+    - backups
+    - monitoring
+    - prometheus
+    - portainer
+    - app
+    - landing
+    # Proxy (Caddy) - wyłączony, używamy Nginx Proxy Manager
+    # - proxy

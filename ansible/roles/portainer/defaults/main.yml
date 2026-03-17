@@ -1,0 +1,11 @@
+---
+# Portainer configuration
+portainer_install: true
+portainer_takeover: false  # Ustaw na true aby przejąć istniejący Portainer
+portainer_container_name: portainer
+portainer_port: 9000
+portainer_image: portainer/portainer-ce:latest
+portainer_data_dir: /srv/portainer/data  # Na sda (system)
+portainer_compose_dir: ~/stacks/portainer
+portainer_network: portainer_network
+

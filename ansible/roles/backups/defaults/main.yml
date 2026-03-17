@@ -1,0 +1,11 @@
+---
+# Backup configuration
+backups_enabled: true
+backup_retention_days: 7
+backup_time: "02:00"  # 2 AM
+backup_log_dir: "/home/{{ vps_user }}/logs/pg_backups"
+
+# PostgreSQL backup configuration
+# Dodatkowe instancje do backupu (poza tymi zdefiniowanymi w postgres_instances)
+postgres_backup_instances: []
+

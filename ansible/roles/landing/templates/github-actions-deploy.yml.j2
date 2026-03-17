@@ -1,0 +1,54 @@
+name: Deploy Landing Page
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:  # Pozwala na ręczne uruchomienie
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    
+    - name: Deploy to VPS via SSH
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.VPS_HOST }}
+        username: ${{ secrets.VPS_USER }}
+        key: ${{ secrets.VPS_SSH_KEY }}
+        port: 22
+        debug: true
+        command_timeout: 10m
+        script: |
+          echo "🚀 Aktualizacja landing page..."
+          
+          # Przejdź do katalogu repo landing page
+          cd {{ landing_repo_dir_expanded | default('/home/pawel/landing-page') }}
+          
+          # Aktualizuj kod z Git
+          echo "📥 Pulling latest code..."
+          git fetch origin
+          git reset --hard origin/{{ landing_repo_branch | default('main') }}
+          
+          # Przejdź do katalogu docker-compose landing
+          cd {{ landing_compose_dir_expanded | default('/home/pawel/stacks/landing') }}
+          
+          # Rebuild i restart kontenera Next.js
+          echo "🔨 Rebuilding Next.js container..."
+          docker compose build --no-cache landing
+          
+          echo "🔄 Restarting landing container..."
+          docker compose up -d --force-recreate landing
+          
+          # Czekaj aż kontener się uruchomi
+          echo "⏳ Waiting for container to be ready..."
+          sleep 5
+          
+          # Sprawdź status
+          echo "📊 Container status:"
+          docker ps | grep landing || echo "⚠️ Container not found!"
+          
+          echo "✅ Deployment completed!"

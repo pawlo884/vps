@@ -1,0 +1,37 @@
+services:
+  portainer:
+    image: {{ portainer_image }}
+    container_name: {{ portainer_container_name }}
+    restart: unless-stopped
+    ports:
+      - "{{ portainer_port }}:9000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - {{ portainer_data_dir }}:/data
+    networks:
+      - {{ portainer_network }}
+      - nginx_proxy_manager_network  # Połącz z siecią NPM
+    # Healthcheck usunięty - obraz Portainera jest zbyt minimalny (brak /bin/sh, wget, curl)
+    # Polegamy na restart policy i limitach zasobów
+    logging:
+      driver: "json-file"
+      options:
+        max-file: "3"
+        max-size: "50m"
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+
+networks:
+  {{ portainer_network }}:
+    name: {{ portainer_network }}
+    driver: bridge
+  nginx_proxy_manager_network:
+    name: nginx_proxy_manager_network
+    external: true
+

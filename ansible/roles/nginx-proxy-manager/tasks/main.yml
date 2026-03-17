@@ -1,0 +1,58 @@
+---
+- name: Check if Nginx Proxy Manager container already exists
+  shell: docker ps -a --format '{{ '{{' }}.Names{{ '}}' }}' --filter "name={{ nginx_proxy_manager_container_name }}"
+  register: npm_exists
+  changed_when: false
+  failed_when: false
+
+- name: Check if Nginx Proxy Manager is running
+  shell: docker ps --format '{{ '{{' }}.Names{{ '}}' }}' --filter "name={{ nginx_proxy_manager_container_name }}"
+  register: npm_running
+  changed_when: false
+  failed_when: false
+  when: npm_exists.stdout != ""
+
+- name: Display existing Nginx Proxy Manager status
+  debug:
+    msg: "Nginx Proxy Manager już istnieje i {{ 'działa' if npm_running.stdout != '' else 'jest zatrzymany' }}. Ustaw nginx_proxy_manager_takeover: true w all.yml aby przejąć zarząd."
+  when: npm_exists.stdout != "" and not nginx_proxy_manager_takeover | default(false)
+
+- name: Stop and remove existing Nginx Proxy Manager (if takeover enabled)
+  command: docker rm -f {{ nginx_proxy_manager_container_name }}
+  when: 
+    - npm_exists.stdout != ""
+    - nginx_proxy_manager_takeover | default(false)
+
+- name: Set nginx proxy manager compose directory
+  set_fact:
+    npm_compose_dir_expanded: "{{ (nginx_proxy_manager_compose_dir | default('/home/' + vps_user + '/stacks/nginx-proxy-manager')) | regex_replace('^~', '/home/' + vps_user) }}"
+
+- name: Ensure Nginx Proxy Manager directories exist
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ vps_user }}"
+    group: "{{ vps_user }}"
+    mode: '0755'
+  loop:
+    - "{{ npm_compose_dir_expanded }}"
+    - "{{ nginx_proxy_manager_data_dir }}"
+    - "{{ nginx_proxy_manager_letsencrypt_dir }}"
+
+- name: Generate docker-compose.yml for Nginx Proxy Manager
+  template:
+    src: docker-compose.yml.j2
+    dest: "{{ npm_compose_dir_expanded }}/docker-compose.yml"
+    owner: "{{ vps_user }}"
+    group: "{{ vps_user }}"
+    mode: "0644"
+
+- name: Start Nginx Proxy Manager container
+  community.docker.docker_compose_v2:
+    project_src: "{{ npm_compose_dir_expanded }}"
+    state: present
+    recreate: auto
+  become_user: "{{ vps_user }}"
+  environment:
+    COMPOSE_PROJECT_NAME: nginx-proxy-manager
+  when: nginx_proxy_manager_install | default(true)

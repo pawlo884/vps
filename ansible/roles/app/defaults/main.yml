@@ -1,0 +1,43 @@
+---
+# Django app deployment configuration
+app_name: nc
+app_user: "{{ vps_user }}"
+app_dir: "/home/{{ vps_user }}/apps/{{ app_name }}"
+app_port: 8000
+
+# GitHub repository
+app_repo_url: "git@github.com:pawlo884/nc.git"
+app_repo_branch: main
+
+# Docker configuration
+app_docker_image: "{{ app_name }}:latest"
+app_dockerfile_path: "Dockerfile.prod"
+app_compose_dir: "/home/{{ vps_user }}/stacks/{{ app_name }}"
+app_env_file: ".env"
+app_manage_env: true
+app_env_force: false
+app_manage_repo: true
+
+# Environment variables (będą przekazane do .env)
+app_env_vars:
+  DEBUG: "False"
+  SECRET_KEY: ""  # Wygeneruj lub ustaw
+  DATABASE_URL: "postgresql://pawel:Relisys17!@postgres:5432/nc_prod"
+  # Dodaj więcej zmiennych według potrzeb
+
+# Database connection (użyj nazwy serwisu z docker-compose)
+app_db_host: postgres
+app_db_port: 5432
+app_db_name: nc_prod
+app_db_user: pawel
+app_db_password: Relisys17!
+
+# Network - połącz z siecią PostgreSQL
+app_docker_network: dbnet
+
+# Expose port directly (bez reverse proxy)
+app_expose_port: 8000
+
+# Minio setup - wyłączone (MinIO w osobnym stacku)
+app_minio_setup_enabled: false
+

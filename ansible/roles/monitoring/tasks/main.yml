@@ -1,0 +1,102 @@
+---
+- name: Check if Netdata container already exists
+  shell: docker ps -a --format '{{ '{{' }}.Names{{ '}}' }}' --filter "name={{ monitoring_container_name }}"
+  register: netdata_exists
+  changed_when: false
+  failed_when: false
+
+- name: Check if Netdata is running
+  shell: docker ps --format '{{ '{{' }}.Names{{ '}}' }}' --filter "name={{ monitoring_container_name }}"
+  register: netdata_running
+  changed_when: false
+  failed_when: false
+  when: netdata_exists.stdout != ""
+
+- name: Check if port 19999 is already in use
+  shell: ss -tuln | grep -q ":19999" && echo "in_use" || echo "free"
+  register: port_check
+  changed_when: false
+  failed_when: false
+
+- name: Remove existing Netdata container if exists (only if not running)
+  command: docker rm -f {{ monitoring_container_name }}
+  when: 
+    - netdata_exists.stdout != ""
+    - netdata_running.stdout == ""
+
+- name: Ensure Netdata go.d directory exists
+  file:
+    path: "{{ monitoring_config_path }}/go.d"
+    state: directory
+    mode: '0755'
+
+- name: Configure Netdata nvme monitoring
+  template:
+    src: nvme.conf.j2
+    dest: "{{ monitoring_config_path }}/go.d/nvme.conf"
+    mode: '0644'
+
+- name: Merge postgres_instances with passwords from secrets for monitoring
+  set_fact:
+    monitoring_postgres_instances: "{{ monitoring_postgres_instances | default([]) + [item | combine((postgres_instances_secrets | default([]) | selectattr('name', 'equalto', item.name) | first | default({}))) | combine({'host': 'postgres_' + item.name, 'port': '5432'})] }}"
+  vars:
+    _secrets: "{{ postgres_instances_secrets | default([]) }}"
+  loop: "{{ postgres_instances | default([]) }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when: 
+    - monitoring_postgres_enabled | default(true)
+    - postgres_instances is defined
+    - postgres_instances | length > 0
+  no_log: true  # Ukryj hasła w logach
+
+- name: Configure Netdata PostgreSQL monitoring
+  template:
+    src: postgres.conf.j2
+    dest: "{{ monitoring_config_path }}/go.d/postgres.conf"
+    mode: '0644'
+  when: 
+    - monitoring_postgres_enabled | default(true)
+    - monitoring_postgres_instances | default([]) | length > 0
+
+- name: Configure Netdata main config
+  template:
+    src: netdata.conf.j2
+    dest: "{{ monitoring_config_path }}/netdata.conf"
+    mode: '0644'
+  when: monitoring_install | default(true)
+
+- name: Create htpasswd file for Netdata basic auth
+  htpasswd:
+    path: "{{ monitoring_config_path }}/.htpasswd"
+    name: "{{ monitoring_auth_user }}"
+    password: "{{ monitoring_auth_password }}"
+    owner: root
+    group: root
+    mode: '0644'
+    create: yes
+  when:
+    - monitoring_install | default(true)
+    - monitoring_auth_enabled | default(true)
+    - monitoring_auth_user is defined
+    - monitoring_auth_password is defined
+  no_log: true
+
+- name: Start Netdata container
+  command: >
+    docker run -d
+    --name={{ monitoring_container_name }}
+    -p 127.0.0.1:{{ monitoring_port }}:19999
+    -v netdata-data:/var/lib/netdata
+    -v netdata-config:/etc/netdata
+    {% if monitoring_auth_enabled | default(true) and monitoring_auth_user is defined and monitoring_auth_password is defined %}-v {{ monitoring_config_path }}/.htpasswd:/etc/netdata/.htpasswd:ro{% endif %}
+    --network={{ postgres_network | default('dbnet') }}
+    --cap-add SYS_PTRACE
+    --security-opt apparmor=unconfined
+    --restart unless-stopped
+    {{ monitoring_image }}
+  when: 
+    - monitoring_install | default(true)
+    - (netdata_running is not defined or netdata_running.stdout is not defined or netdata_running.stdout == "")
+    - port_check.stdout != "in_use"
+

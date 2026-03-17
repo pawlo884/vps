@@ -1,0 +1,4 @@
+# Przykładowa konfiguracja - skopiuj do hosts.ini i uzupełnij
+[vps]
+vps ansible_host=YOUR_VPS_IP ansible_user=pawel ansible_ssh_private_key_file=/home/USER/.ssh/id_ed25519_wsl ansible_ssh_common_args='-o StrictHostKeyChecking=accept-new' ansible_become=true
+

@@ -1,0 +1,15 @@
+[Unit]
+Description=gunicorn for {{ app_name }}
+After=network.target
+
+[Service]
+User={{ app_user }}
+Group=www-data
+WorkingDirectory={{ project_dir }}
+Environment="DJANGO_SETTINGS_MODULE={{ django_settings_module }}"
+ExecStart={{ venv_dir }}/bin/gunicorn {{ app_name }}.wsgi:application --bind unix:{{ gunicorn_socket }} --workers 3
+Restart=on-failure
+RuntimeDirectoryMode=0755
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,24 @@
+network:
+  version: 2
+  renderer: NetworkManager
+  wifis:
+    {{ wifi_interface }}:
+      dhcp4: {{ wifi_dhcp | lower }}
+{% if wifi_dhcp == false %}
+      addresses:
+        - {{ wifi_static_address }}
+      routes:
+        - to: default
+          via: {{ wifi_static_gateway }}
+      nameservers:
+        addresses:
+{% for dns in wifi_static_nameservers %}
+          - {{ dns }}
+{% endfor %}
+{% endif %}
+      access-points:
+{% for network in wifi_networks | sort(attribute='priority', reverse=true) %}
+        "{{ network.ssid }}":
+          password: "{{ network.password }}"
+{% endfor %}
+

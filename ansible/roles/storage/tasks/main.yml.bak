@@ -1,0 +1,51 @@
+---
+- name: Install parted
+  apt:
+    name: parted
+    state: present
+
+- name: Create GPT partition table
+  parted:
+    device: "{{ storage_disk_device }}"
+    label: gpt
+
+- name: Create partition
+  parted:
+    device: "{{ storage_disk_device }}"
+    number: 1
+    part_start: 1MiB
+    part_end: 100%
+
+- name: Format as ext4
+  filesystem:
+    fstype: ext4
+    dev: "{{ storage_disk_device }}1"
+    label: data2tb
+    force: no
+
+- name: Create mount point
+  file:
+    path: /mnt/data2tb
+    state: directory
+
+- name: Mount disk
+  mount:
+    path: /mnt/data2tb
+    src: LABEL=data2tb
+    fstype: ext4
+    opts: defaults,noatime
+    state: mounted
+
+- name: Add to fstab
+  mount:
+    path: /mnt/data2tb
+    src: LABEL=data2tb
+    fstype: ext4
+    opts: defaults,noatime
+    state: present
+
+- name: Enable fstrim
+  systemd:
+    name: fstrim.timer
+    enabled: yes
+    state: started

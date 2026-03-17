@@ -1,0 +1,124 @@
+---
+# Playbook do szczegółowego sprawdzenia backupów
+- hosts: web
+  become: false
+  gather_facts: false
+  tasks:
+    - name: Sprawdź czy katalog backupów istnieje
+      stat:
+        path: /srv/backups/postgres/nc
+      register: backup_dir
+
+    - name: Wyświetl informacje o katalogu
+      debug:
+        msg: "Katalog backupów: {{ 'istnieje' if backup_dir.stat.exists else 'NIE ISTNIEJE' }}"
+
+    - name: Lista wszystkich backupów (sortowane po dacie modyfikacji)
+      shell: |
+        find /srv/backups/postgres/nc -type f -name '*.sql.gz' -printf '%T@\t%TY-%Tm-%Td_%TH-%TM\t%s\t%p\n' 2>/dev/null | sort -rn | head -30
+      register: all_backups
+      when: backup_dir.stat.exists
+
+    - name: Wyświetl wszystkie backupy
+      debug:
+        var: all_backups.stdout_lines
+      when: backup_dir.stat.exists and all_backups.stdout_lines | length > 0
+
+    - name: Backupy per baza - matterhorn1
+      shell: |
+        ls -lth /srv/backups/postgres/nc/matterhorn1_*.sql.gz 2>/dev/null | head -5
+      register: backups_matterhorn1
+      when: backup_dir.stat.exists
+      failed_when: false
+
+    - name: Wyświetl backupy matterhorn1
+      debug:
+        var: backups_matterhorn1.stdout_lines
+      when: backup_dir.stat.exists and backups_matterhorn1.stdout_lines | length > 0
+
+    - name: Backupy per baza - default
+      shell: |
+        ls -lth /srv/backups/postgres/nc/default_*.sql.gz 2>/dev/null | head -5
+      register: backups_default
+      when: backup_dir.stat.exists
+      failed_when: false
+
+    - name: Wyświetl backupy default
+      debug:
+        var: backups_default.stdout_lines
+      when: backup_dir.stat.exists and backups_default.stdout_lines | length > 0
+
+    - name: Backupy per baza - MPD
+      shell: |
+        ls -lth /srv/backups/postgres/nc/MPD_*.sql.gz 2>/dev/null | head -5
+      register: backups_mpd
+      when: backup_dir.stat.exists
+      failed_when: false
+
+    - name: Wyświetl backupy MPD
+      debug:
+        var: backups_mpd.stdout_lines
+      when: backup_dir.stat.exists and backups_mpd.stdout_lines | length > 0
+
+    - name: Backupy per baza - web_agent
+      shell: |
+        ls -lth /srv/backups/postgres/nc/web_agent_*.sql.gz 2>/dev/null | head -5
+      register: backups_web_agent
+      when: backup_dir.stat.exists
+      failed_when: false
+
+    - name: Wyświetl backupy web_agent
+      debug:
+        var: backups_web_agent.stdout_lines
+      when: backup_dir.stat.exists and backups_web_agent.stdout_lines | length > 0
+
+    - name: Sprawdź crony backupów
+      shell: |
+        crontab -l 2>/dev/null | grep -E 'pg_backup|PostgreSQL backup' || echo "Brak cronów"
+      register: cron_backups
+      failed_when: false
+
+    - name: Wyświetl crony backupów
+      debug:
+        var: cron_backups.stdout_lines
+
+    - name: Sprawdź logi backupów
+      shell: |
+        tail -30 /home/pawel/logs/pg_backups/*.log 2>/dev/null | tail -20 || echo "Brak logów"
+      register: backup_logs
+      failed_when: false
+
+    - name: Wyświetl logi backupów
+      debug:
+        var: backup_logs.stdout_lines
+
+    - name: Sprawdź kontenery PostgreSQL
+      shell: |
+        docker ps --filter 'name=postgres' --format 'table {{.Names}}\t{{.Status}}\t{{.CreatedAt}}'
+      register: postgres_containers
+      failed_when: false
+
+    - name: Wyświetl kontenery PostgreSQL
+      debug:
+        var: postgres_containers.stdout_lines
+
+    - name: Sprawdź szczegóły kontenera nc-postgres-1
+      shell: |
+        docker inspect nc-postgres-1 --format 'Created: {{.Created}}' 2>/dev/null || echo "Kontener nie istnieje"
+      register: nc_postgres_info
+      failed_when: false
+
+    - name: Wyświetl informacje o kontenerze nc-postgres-1
+      debug:
+        var: nc_postgres_info.stdout_lines
+
+    - name: Sprawdź wolumeny kontenera nc-postgres-1
+      shell: |
+        docker inspect nc-postgres-1 --format '{{json .Mounts}}' 2>/dev/null | python3 -m json.tool || echo "Brak informacji"
+      register: nc_postgres_mounts
+      failed_when: false
+
+    - name: Wyświetl wolumeny
+      debug:
+        var: nc_postgres_mounts.stdout_lines
+

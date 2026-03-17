@@ -1,0 +1,10 @@
+[Unit]
+Description=Timer cotygodniowego czyszczenia Dockera (każda niedziela 3:00)
+
+[Timer]
+OnCalendar=Sun *-*-* 03:00:00
+Persistent=true
+AccuracySec=1h
+
+[Install]
+WantedBy=timers.target

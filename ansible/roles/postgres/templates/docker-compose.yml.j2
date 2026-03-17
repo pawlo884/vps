@@ -1,0 +1,93 @@
+---
+services:
+{% for instance in postgres_instances %}
+  postgres_{{ instance.name }}:
+    image: "{{ postgres_image }}"
+    container_name: "postgres_{{ instance.name }}"
+    restart: unless-stopped
+    shm_size: "{{ instance.shm_size }}"
+    environment:
+      POSTGRES_DB: "{{ instance.db_name }}"
+      POSTGRES_USER: "{{ instance.db_user }}"
+      POSTGRES_PASSWORD: "{{ instance.db_password }}"
+{% if instance.pgdata is defined %}
+      PGDATA: "{{ instance.pgdata }}"
+{% endif %}
+    command:
+      - postgres
+      - -c
+      - shared_buffers={{ instance.shared_buffers }}
+      - -c
+      - effective_cache_size={{ instance.effective_cache_size }}
+      - -c
+      - work_mem={{ instance.work_mem }}
+      - -c
+      - maintenance_work_mem={{ instance.maintenance_work_mem }}
+      - -c
+      - wal_level=replica
+      - -c
+      - max_wal_size=4GB
+      - -c
+      - checkpoint_timeout=15min
+      - -c
+      - random_page_cost=1.1
+      - -c
+      - effective_io_concurrency=200
+      - -c
+      - listen_addresses=*
+      - -c
+      - tcp_keepalives_idle=600
+      - -c
+      - tcp_keepalives_interval=30
+      - -c
+      - tcp_keepalives_count=3
+    volumes:
+      - "{{ instance.data_dir }}:/var/lib/postgresql/data"
+      - "{{ instance.backups_dir }}:/backups"
+    networks:
+      - "{{ postgres_network }}"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"{{ instance.db_user }}\""]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+{% if instance.ports is defined and instance.ports | length > 0 %}
+    ports:
+{% for port in instance.ports %}
+      - "{{ port }}"
+{% endfor %}
+{% endif %}
+
+{% endfor %}
+{% if pgadmin_install | default(false) %}
+  pgadmin:
+    image: "{{ pgadmin_image }}"
+    container_name: pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: "{{ pgadmin_email }}"
+      PGADMIN_DEFAULT_PASSWORD: "{{ pgadmin_password }}"
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: "False"
+      PGADMIN_CONFIG_PROXY_X_FOR_COUNT: "1"  # Obsługa reverse proxy (X-Forwarded-For)
+      PGADMIN_CONFIG_PROXY_X_PROTO_COUNT: "1"  # Obsługa reverse proxy (X-Forwarded-Proto)
+    volumes:
+      - "{{ pgadmin_data_dir }}:/var/lib/pgadmin"
+    ports:
+      - "{{ pgadmin_port }}:80"
+    networks:
+      - "{{ postgres_network }}"
+      - nginx_proxy_manager_network  # Połącz z siecią NPM
+    depends_on:
+{% for instance in postgres_instances %}
+      - postgres_{{ instance.name }}
+{% endfor %}
+
+{% endif %}
+networks:
+  {{ postgres_network }}:
+    name: "{{ postgres_network }}"
+  nginx_proxy_manager_network:
+    name: nginx_proxy_manager_network
+    external: true
+

@@ -1,0 +1,81 @@
+---
+- name: Check if WiFi configuration is enabled
+  fail:
+    msg: "WiFi configuration is disabled. Set wifi_configure: true in group_vars/all.yml"
+  when: not wifi_configure | default(false)
+
+- name: Check if WiFi networks are provided
+  fail:
+    msg: "WiFi networks list is required. Set wifi_networks in group_vars/all.yml"
+  when: wifi_networks is not defined or wifi_networks | length == 0
+
+- name: Validate WiFi networks configuration
+  fail:
+    msg: "Each WiFi network must have ssid and password. Check wifi_networks in group_vars/all.yml"
+  when: wifi_networks | selectattr('ssid', 'defined') | list | length != wifi_networks | length or
+        wifi_networks | selectattr('password', 'defined') | list | length != wifi_networks | length
+
+- name: Install wireless tools and NetworkManager
+  apt:
+    name:
+      - wpasupplicant
+      - wireless-tools
+      - netplan.io
+      - network-manager
+    state: present
+    update_cache: yes
+
+- name: Ensure NetworkManager is enabled and started
+  systemd:
+    name: NetworkManager
+    enabled: yes
+    state: started
+
+- name: Check if WiFi interface exists
+  command: ip link show {{ wifi_interface }}
+  register: wifi_interface_check
+  changed_when: false
+  failed_when: false
+
+- name: Fail if WiFi interface not found
+  fail:
+    msg: "WiFi interface {{ wifi_interface }} not found. Check available interfaces with: ip link show"
+  when: wifi_interface_check.rc != 0
+
+- name: Create netplan WiFi configuration
+  template:
+    src: wifi-netplan.yaml.j2
+    dest: /etc/netplan/{{ wifi_netplan_file }}
+    mode: '0600'
+    owner: root
+    group: root
+  register: netplan_config
+
+- name: Apply netplan configuration
+  command: netplan apply
+  when: netplan_config.changed
+
+- name: Set WiFi connection priorities in NetworkManager
+  command: >
+    nmcli connection modify "netplan-{{ wifi_interface }}-{{ item.ssid }}" connection.autoconnect-priority {{ item.priority }}
+  loop: "{{ wifi_networks }}"
+  loop_control:
+    label: "{{ item.ssid }} (priority {{ item.priority }})"
+  when: 
+    - wifi_networks is defined
+    - wifi_networks | length > 0
+  ignore_errors: yes
+  changed_when: false
+
+- name: Wait for WiFi connection
+  wait_for:
+    host: 8.8.8.8
+    port: 53
+    timeout: 30
+  ignore_errors: yes
+  register: wifi_connection_test
+
+- name: Display WiFi connection status
+  debug:
+    msg: "WiFi connection {{ 'successful' if wifi_connection_test.failed == false else 'failed - check manually' }}"
+

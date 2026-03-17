@@ -1,0 +1,80 @@
+---
+# Podstawowe pakiety systemowe
+base_packages:
+  - git
+  - curl
+  - wget
+  - vim
+  - htop
+  - unattended-upgrades
+
+# Użytkownik VPS
+vps_user: pawel
+
+# Docker
+docker_install: true
+
+# Firewall UFW
+ufw_allowed_ports:
+  - { port: 22, proto: tcp, comment: "SSH" }
+  - { port: 80, proto: tcp, comment: "HTTP" }
+  - { port: 443, proto: tcp, comment: "HTTPS" }
+  - { port: 81, proto: tcp, comment: "Nginx Proxy Manager Admin" }
+  - { port: 9000, proto: tcp, comment: "Portainer" }
+
+ufw_default_deny_incoming: true
+ufw_default_allow_outgoing: true
+
+# Sysctl
+sysctl_swappiness: 10
+
+# Docker cleanup schedule (cron format: minute hour day month weekday)
+docker_cleanup_schedule: "0 3 * * 0"  # Co niedzielę o 3:00
+
+# WiFi configuration
+wifi_configure: false  # Ustaw na true jeśli chcesz skonfigurować WiFi
+
+# PostgreSQL test instance
+postgres_test_enabled: true
+postgres_test_password: "testpass123"  # Zmień w secrets.yml!
+
+# PostgreSQL instances secrets (dla prometheus i monitoring)
+postgres_instances_secrets: []
+
+# pgAdmin configuration
+pgadmin_install: true  # Włącz pgAdmin (można zmienić w secrets.yml)
+
+# Takeover - pozwól Ansible przejąć zarządzanie istniejącymi kontenerami
+portainer_takeover: true
+nginx_proxy_manager_takeover: true
+
+# Landing page configuration
+landing_install: true
+landing_use_nextjs: true  # Używa Next.js zamiast statycznych plików HTML
+landing_port: 3000  # Next.js domyślnie na porcie 3000
+
+# Landing page - konfiguracja repo
+landing_repo_url: "git@github.com:pawlo884/sowa-landing.git"
+landing_repo_branch: main
+landing_repo_dir: ~/landing-page  # Lokalizacja na VPS gdzie będzie sklonowane repo
+
+# Lista aplikacji wyświetlanych na landing page (opcjonalnie - można też w repo)
+# Jeśli puste, landing page użyje danych z repo (np. apps.json lub apps.js)
+landing_applications: []
+  # Przykład z domenami:
+  # - name: "Portainer"
+  #   url: "https://portainer.sowa.ch"
+  #   description: "Zarządzanie kontenerami Docker"
+  # - name: "Nginx Proxy Manager"
+  #   url: "https://npm.sowa.ch"
+  #   description: "Zarządzanie reverse proxy"
+  # - name: "Aplikacja Django"
+  #   url: "https://app.sowa.ch"
+  #   description: "Główna aplikacja Django"
+
+# Nginx Proxy Manager - domeny konfigurujesz przez GUI na porcie 81
+# Po uruchomieniu kontenera landing, dodaj w NPM:
+# - Domain: sowa.ch
+# - Forward hostname/IP: landing
+# - Forward port: 3000  # Next.js działa na porcie 3000
+# - SSL: Request SSL Certificate (Let's Encrypt)

@@ -1,0 +1,41 @@
+---
+services:
+  nginx-proxy-manager:
+    image: {{ nginx_proxy_manager_image }}
+    container_name: {{ nginx_proxy_manager_container_name }}
+    restart: unless-stopped
+    ports:
+      - "{{ nginx_proxy_manager_http_port }}:80"
+      - "{{ nginx_proxy_manager_https_port }}:443"
+      - "{{ nginx_proxy_manager_admin_port }}:81"
+    volumes:
+      - {{ nginx_proxy_manager_data_dir }}:/data
+      - {{ nginx_proxy_manager_letsencrypt_dir }}:/etc/letsencrypt
+    networks:
+      - {{ nginx_proxy_manager_network }}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"  # Umożliwia dostęp do hosta z kontenera (dla self-hosting)
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:81/api/ || curl -f http://localhost:81/api/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    logging:
+      driver: "json-file"
+      options:
+        max-file: "3"
+        max-size: "50m"
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+
+networks:
+  {{ nginx_proxy_manager_network }}:
+    name: {{ nginx_proxy_manager_network }}
+    driver: bridge

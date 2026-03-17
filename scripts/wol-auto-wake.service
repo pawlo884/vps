@@ -1,0 +1,16 @@
+[Unit]
+Description=Wake on LAN na żądanie - nasłuchuje logów NPM, budzi przy 502
+After=docker.service network.target
+Requires=docker.service
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/wol-auto-wake.sh
+User=root
+Restart=on-failure
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

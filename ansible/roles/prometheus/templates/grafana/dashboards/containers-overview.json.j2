@@ -1,0 +1,44 @@
+{% raw %}
+{
+  "title": "Containers Overview (basic)",
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "10s",
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "Container CPU (top)",
+      "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "expr": "topk(10, rate(container_cpu_usage_seconds_total{name!=\"\"}[5m]))",
+          "legendFormat": "{{name}}"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Container Memory (RSS)",
+      "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "expr": "topk(10, container_memory_rss{name!=\"\"})",
+          "legendFormat": "{{name}}"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Container Net I/O (bytes/s)",
+      "gridPos": { "x": 0, "y": 8, "w": 12, "h": 8 },
+      "targets": [
+        { "expr": "sum by (name) (irate(container_network_receive_bytes_total[5m]))", "legendFormat": "{{name}} RX" },
+        { "expr": "sum by (name) (irate(container_network_transmit_bytes_total[5m]))", "legendFormat": "{{name}} TX" }
+      ]
+    }
+  ]
+}
+{% endraw %}
+
+

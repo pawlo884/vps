@@ -1,0 +1,27 @@
+---
+# Storage configuration for 2TB NVMe disk
+storage_configure: true
+
+# NVMe disk configuration
+# Uwaga: upewnij się że to właściwy dysk! Sprawdź przez lsblk przed uruchomieniem
+storage_disk_device: ""  # np. /dev/nvme0n1 - ZMIEŃ na właściwy dysk!
+storage_mount_point: /mnt/data2tb
+storage_filesystem: ext4
+storage_label: data2tb
+
+# Bind mounts configuration
+storage_bind_mounts:
+  # PostgreSQL - tylko data (backupy na sda)
+  - source: /mnt/data2tb/postgres/shared/data
+    target: /srv/postgres/shared/data
+  # Storage aplikacji
+  - source: /mnt/data2tb/storage/app_uploads
+    target: /srv/volumes/app_uploads
+  - source: /mnt/data2tb/storage/app_data
+    target: /srv/volumes/app_data
+  # MinIO data
+  - source: /mnt/data2tb/minio/data
+    target: /srv/minio/data
+  # Docker volumes dla aplikacji (nc_*) - już przeniesione przez docker-compose.yml
+  # Volumes są montowane bezpośrednio w docker-compose.prod.yml jako bind mounts
+

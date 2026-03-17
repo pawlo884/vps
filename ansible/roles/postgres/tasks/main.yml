@@ -1,0 +1,76 @@
+---
+- name: Merge postgres_instances with passwords from secrets
+  set_fact:
+    postgres_instances_merged: "{{ postgres_instances_merged | default([]) + [item | combine((postgres_instances_secrets | default([]) | selectattr('name', 'equalto', item.name) | first | default({})))] }}"
+  loop: "{{ postgres_instances }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when: 
+    - postgres_instances is defined
+    - postgres_instances | default([]) | length > 0
+    - postgres_instances_secrets is defined
+
+- name: Set merged postgres_instances
+  set_fact:
+    postgres_instances: "{{ postgres_instances_merged }}"
+  when: postgres_instances_merged is defined
+
+- name: Ensure PostgreSQL directories exist
+  file:
+    path: "{{ item.data_dir }}"
+    state: directory
+    owner: "{{ vps_user }}"
+    group: "{{ vps_user }}"
+    mode: "0755"
+  loop: "{{ postgres_instances }}"
+  loop_control:
+    label: "{{ item.name }} data dir"
+
+- name: Ensure PostgreSQL backup directories exist
+  file:
+    path: "{{ item.backups_dir }}"
+    state: directory
+    owner: "{{ vps_user }}"
+    group: "{{ vps_user }}"
+    mode: "0755"
+  loop: "{{ postgres_instances }}"
+  loop_control:
+    label: "{{ item.name }} backups dir"
+
+- name: Ensure pgAdmin data directory exists
+  file:
+    path: "{{ pgadmin_data_dir }}"
+    state: directory
+    owner: "5050"
+    group: "5050"
+    mode: "0755"
+  when: pgadmin_install | default(false)
+
+- name: Set postgres compose directory
+  set_fact:
+    postgres_compose_dir_expanded: "{{ (postgres_compose_dir | default('/home/' + vps_user + '/stacks/db')) | regex_replace('^~', '/home/' + vps_user) }}"
+
+- name: Ensure docker-compose directory exists
+  file:
+    path: "{{ postgres_compose_dir_expanded }}"
+    state: directory
+    owner: "{{ vps_user }}"
+    group: "{{ vps_user }}"
+    mode: "0755"
+
+- name: Generate docker-compose.yml for PostgreSQL
+  template:
+    src: docker-compose.yml.j2
+    dest: "{{ postgres_compose_dir_expanded }}/docker-compose.yml"
+    owner: "{{ vps_user }}"
+    group: "{{ vps_user }}"
+    mode: "0644"
+
+- name: Start PostgreSQL containers
+  community.docker.docker_compose_v2:
+    project_src: "{{ postgres_compose_dir_expanded }}"
+    state: present
+    recreate: auto
+  become_user: "{{ vps_user }}"
+  environment:
+    COMPOSE_PROJECT_NAME: postgres

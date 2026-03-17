@@ -1,0 +1,115 @@
+---
+- name: Install parted
+  apt:
+    name: parted
+    state: present
+
+- name: Create GPT partition table
+  parted:
+    device: "{{ storage_disk_device }}"
+    label: gpt
+
+- name: Create partition
+  parted:
+    device: "{{ storage_disk_device }}"
+    number: 1
+    part_start: 1MiB
+    part_end: 100%
+
+- name: Detect partition device name
+  shell: |
+    if [ -b {{ storage_disk_device }}p1 ]; then
+      echo "{{ storage_disk_device }}p1"
+    elif [ -b {{ storage_disk_device }}1 ]; then
+      echo "{{ storage_disk_device }}1"
+    else
+      sleep 2
+      if [ -b {{ storage_disk_device }}p1 ]; then
+        echo "{{ storage_disk_device }}p1"
+      elif [ -b {{ storage_disk_device }}1 ]; then
+        echo "{{ storage_disk_device }}1"
+      else
+        echo ""
+      fi
+    fi
+  register: partition_device
+  changed_when: false
+
+- name: Fail if partition not found
+  fail:
+    msg: "Partycja nie została znaleziona. Sprawdź: lsblk {{ storage_disk_device }}"
+  when: partition_device.stdout == ""
+
+- name: Format as ext4
+  filesystem:
+    fstype: ext4
+    dev: "{{ partition_device.stdout }}"
+    force: no
+
+- name: Set filesystem label
+  command: e2label {{ partition_device.stdout }} {{ storage_label }}
+  changed_when: false
+
+- name: Create mount point
+  file:
+    path: "{{ storage_mount_point }}"
+    state: directory
+
+- name: Mount disk
+  mount:
+    path: "{{ storage_mount_point }}"
+    src: "LABEL={{ storage_label }}"
+    fstype: ext4
+    opts: defaults,noatime
+    state: mounted
+
+- name: Add to fstab
+  mount:
+    path: "{{ storage_mount_point }}"
+    src: "LABEL={{ storage_label }}"
+    fstype: ext4
+    opts: defaults,noatime
+    state: present
+
+- name: Enable fstrim
+  systemd:
+    name: fstrim.timer
+    enabled: yes
+    state: started
+
+# Bind mounts configuration
+- name: Create source directories for bind mounts
+  file:
+    path: "{{ item.source }}"
+    state: directory
+    mode: '0755'
+  loop: "{{ storage_bind_mounts | default([]) }}"
+  when: storage_bind_mounts is defined
+
+- name: Create target directories for bind mounts
+  file:
+    path: "{{ item.target }}"
+    state: directory
+    mode: '0755'
+  loop: "{{ storage_bind_mounts | default([]) }}"
+  when: storage_bind_mounts is defined
+
+- name: Create bind mounts
+  mount:
+    path: "{{ item.target }}"
+    src: "{{ item.source }}"
+    fstype: none
+    opts: bind
+    state: mounted
+  loop: "{{ storage_bind_mounts | default([]) }}"
+  when: storage_bind_mounts is defined
+
+- name: Add bind mounts to fstab
+  mount:
+    path: "{{ item.target }}"
+    src: "{{ item.source }}"
+    fstype: none
+    opts: bind
+    state: present
+  loop: "{{ storage_bind_mounts | default([]) }}"
+  when: storage_bind_mounts is defined

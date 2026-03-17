@@ -1,0 +1,34 @@
+---
+# PostgreSQL instances configuration
+# Each instance will run in separate container
+postgres_instances:
+  - name: shared
+    db_name: shared
+    db_user: shareduser
+    db_password: change_me_shared  # Zmień przez --extra-vars lub vault!
+    data_dir: /srv/postgres/shared/data
+    backups_dir: /srv/postgres/shared/backups
+    shm_size: 512m
+    shared_buffers: 1GB
+    effective_cache_size: 3GB
+    work_mem: 8MB
+    maintenance_work_mem: 128MB
+    # ports: []  # Jeśli chcesz udostępnić na hoście, ustaw np. ["5434:5432"]
+
+# PostgreSQL image
+postgres_image: postgres:18
+
+# Docker network for databases
+postgres_network: dbnet
+
+# RAM configuration (16GB or 32GB)
+postgres_ram_gb: 16
+
+# pgAdmin configuration
+pgadmin_install: false
+pgadmin_image: dpage/pgadmin4:latest
+pgadmin_port: 5050
+pgadmin_data_dir: /srv/pgadmin/data
+pgadmin_email: admin@example.com  # Zmień w secrets.yml!
+pgadmin_password: change_me_pgadmin  # Zmień w secrets.yml!
+
