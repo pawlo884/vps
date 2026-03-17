@@ -82,3 +82,5 @@ landing_applications: []
 
 nginx_proxy_manager_install: true
 nginx_proxy_manager_takeover: true
+
+n8n_install: true   # opcjonalnie, jeśli chcesz kiedyś dodać warunek

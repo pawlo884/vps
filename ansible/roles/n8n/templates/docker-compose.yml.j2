@@ -1,0 +1,21 @@
+version: "3.8"
+
+services:
+  n8n:
+    image: {{ n8n_image }}
+    container_name: {{ n8n_container_name }}
+    restart: unless-stopped
+    ports:
+      - "{{ n8n_external_port }}:{{ n8n_internal_port }}"
+    environment:
+{% for key, value in n8n_env.items() %}
+      {{ key }}: "{{ value }}"
+{% endfor %}
+    volumes:
+      - "{{ n8n_data_dir }}:/home/node/.n8n"
+    networks:
+      - {{ n8n_network }}
+
+networks:
+  {{ n8n_network }}:
+    external: true

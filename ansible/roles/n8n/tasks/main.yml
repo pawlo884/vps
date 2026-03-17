@@ -1,0 +1,33 @@
+---
+- name: Ensure n8n directories exist
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ n8n_user }}"
+    group: "{{ n8n_user }}"
+    mode: "0755"
+  loop:
+    - "{{ n8n_compose_dir }}"
+    - "{{ n8n_data_dir }}"
+
+- name: Generate docker-compose.yml for n8n
+  template:
+    src: docker-compose.yml.j2
+    dest: "{{ n8n_compose_dir }}/docker-compose.yml"
+    owner: "{{ n8n_user }}"
+    group: "{{ n8n_user }}"
+    mode: "0644"
+
+- name: Ensure Docker network for n8n exists
+  community.docker.docker_network:
+    name: "{{ n8n_network }}"
+    state: present
+
+- name: Start n8n stack
+  community.docker.docker_compose_v2:
+    project_src: "{{ n8n_compose_dir }}"
+    state: present
+    recreate: auto
+  become_user: "{{ n8n_user }}"
+  environment:
+    COMPOSE_PROJECT_NAME: "n8n"

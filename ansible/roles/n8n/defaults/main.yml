@@ -1,0 +1,19 @@
+---
+n8n_user: "{{ vps_user }}"
+
+n8n_data_dir: /srv/n8n
+n8n_compose_dir: "/home/{{ n8n_user }}/stacks/n8n"
+
+n8n_image: "n8nio/n8n:latest"
+n8n_container_name: "n8n"
+n8n_internal_port: 5678
+n8n_external_port: 5678 # używane tylko na test, na prod za NPM może być bez mapowania
+
+n8n_network: "nginx_proxy_manager_network"
+
+# proste zmienne środowiskowe – SQLite w volume
+n8n_env:
+  N8N_BASIC_AUTH_ACTIVE: "false"
+  N8N_HOST: "n8n.local"
+  N8N_PORT: "{{ n8n_internal_port }}"
+  N8N_PROTOCOL: "http"
