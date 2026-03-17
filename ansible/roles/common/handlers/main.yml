@@ -3,6 +3,7 @@
   systemd:
     name: docker
     state: restarted
+  when: docker_install | default(false)
 
 - name: restart systemd-journald
   systemd:
@@ -11,4 +12,3 @@
 
 - name: reload systemd
   command: systemctl daemon-reload
-
