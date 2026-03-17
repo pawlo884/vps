@@ -9,7 +9,7 @@ base_packages:
   - unattended-upgrades
 
 # Użytkownik VPS
-vps_user: pawel
+vps_user: pawlo884
 
 # Docker
 docker_install: false
