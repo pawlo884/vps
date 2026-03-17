@@ -24,7 +24,7 @@ lint_ansible:
   script:
     - cd ansible
     - yamllint . || true  # nie blokuj pipeline'u na stylu YAML
-    - ansible-lint playbooks site.yml || true  # opcjonalne ostrzeżenia, nie blokują
+    - ansible-lint playbooks playbooks/site.yml || true  # opcjonalne ostrzeżenia, nie blokują
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
     - if: '$CI_COMMIT_BRANCH'
