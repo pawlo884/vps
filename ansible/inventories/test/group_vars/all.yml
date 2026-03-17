@@ -79,3 +79,6 @@ landing_applications: []
 # - Forward hostname/IP: landing
 # - Forward port: 3000  # Next.js działa na porcie 3000
 # - SSL: Request SSL Certificate (Let's Encrypt)
+
+nginx_proxy_manager_install: true
+nginx_proxy_manager_takeover: true
