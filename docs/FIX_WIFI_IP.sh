@@ -53,7 +53,7 @@ else
     echo "        - 8.8.8.8"
     echo "    access-points:"
     echo "      \"Loki\":"
-    echo "        password: \"staropolanka2000\""
+    echo "        password: \"TWOJE_HASLO_WIFI\"  # uzupełnij ręcznie"
 fi
 
 echo ""

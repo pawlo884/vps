@@ -24,17 +24,21 @@ ssh pawel@212.127.93.27
 ```
 
 **Jeśli nie masz klucza SSH lub nie działa:**
+
 1. **Sprawdź, czy klucz jest dodany do agenta SSH:**
+
    ```bash
    ssh-add -l
    ```
 
 2. **Dodaj klucz do agenta:**
+
    ```bash
    ssh-add ~/.ssh/id_ed25519  # lub id_rsa
    ```
 
 3. **Jeśli nie masz klucza, wygeneruj nowy:**
+
    ```bash
    ssh-keygen -t ed25519 -C "twoj@email.com"
    ```
@@ -50,6 +54,7 @@ Jeśli masz **fizyczny dostęp do serwera** lub **dostęp przez konsolę (VPS pr
 
 1. **Zaloguj się przez konsolę** (bezpośrednio na serwerze lub przez panel VPS)
 2. **Zresetuj hasło:**
+
    ```bash
    sudo passwd pawel
    ```
@@ -62,20 +67,24 @@ Jeśli masz **fizyczny dostęp do serwera** lub **dostęp przez konsolę (VPS pr
 ### Opcja 3: Alternatywne metody dostępu
 
 **Jeśli masz dostęp do Portainer lub innego narzędzia zarządzania:**
+
 - Możesz użyć Portainer do wykonania komend w kontenerach
 - Możesz użyć Portainer do dostępu do terminala kontenera
 
 **Jeśli masz dostęp do pgAdmin przez Cloudflare:**
+
 - Możesz użyć pgAdmin bezpośrednio (ale połączenia do baz nadal wymagają SSH tunnel)
 
 ### Opcja 4: Sprawdź zapisane hasła
 
 **Sprawdź, czy masz zapisane hasła w:**
+
 - Menedżerze haseł (np. LastPass, 1Password, Bitwarden)
 - Plikach konfiguracyjnych projektu (ale hasła nie powinny być commitowane)
 - Notatkach/dokumentacji
 
 **Pliki, które mogą zawierać informacje o dostępie:**
+
 - `ansible/inventories/prod/group_vars/secrets.yml` (ale to hasła do baz, nie SSH)
 - Dokumentacja projektu
 - Notatki osobiste
@@ -103,6 +112,7 @@ ssh pawel@212.127.93.27
 #### Jeśli już masz SSH Tunnel (np. dla nc-postgres-test):
 
 1. **Sprawdź, czy tunel działa:**
+
    ```bash
    ss -tlnp | grep 127.0.0.1 | grep -E "5432|5433|5050"
    ```
@@ -120,22 +130,24 @@ ssh pawel@212.127.93.27
 1. **Upewnij się, że masz dostęp SSH** (patrz sekcja "Dostęp do serwera" wyżej)
 
 2. **Utwórz tunel** (na lokalnym komputerze):
+
    ```bash
    ssh -L 5432:localhost:5432 -L 5433:localhost:5433 -L 5050:localhost:5050 -N pawel@212.127.93.27
    ```
+
    (Zastąp `212.127.93.27` swoim IP serwera)
-   
+
    **Jeśli używasz klucza SSH:**
    - Komenda zadziała automatycznie (bez pytania o hasło)
-   
+
    **Jeśli używasz hasła:**
    - Zostaniesz poproszony o hasło SSH (nie hasło do bazy!)
 
-2. **W pgAdmin użyj**:
+3. **W pgAdmin użyj**:
    - Host: `localhost` (nie IP serwera!)
    - Port: `5432` dla produkcji, `5433` dla testu
 
-3. **Zostaw terminal otwarty** - tunel musi być aktywny podczas pracy.
+4. **Zostaw terminal otwarty** - tunel musi być aktywny podczas pracy.
 
 Szczegółowe instrukcje poniżej ↓
 
@@ -144,10 +156,11 @@ Szczegółowe instrukcje poniżej ↓
 ## Informacje o serwerach
 
 ### 1. nc-postgres-1 (Produkcja)
+
 - **Host/Adres**: `localhost` (lub IP serwera)
 - **Port**: `5432`
 - **Użytkownik**: `pawel`
-- **Hasło**: `Relisys17!`
+- **Hasło**: `<HASLO_BAZY>` (sprawdź w `secrets.yml`)
 - **Dostępne bazy danych**:
   - `MPD`
   - `default`
@@ -156,10 +169,11 @@ Szczegółowe instrukcje poniżej ↓
   - `postgres`
 
 ### 2. nc-postgres-test (Test)
+
 - **Host/Adres**: `localhost` (lub IP serwera)
 - **Port**: `5433`
 - **Użytkownik**: `pawel` (lub `testuser`)
-- **Hasło**: `Relisys17!` (dla użytkownika `pawel`) lub `testpass123` (dla `testuser`)
+- **Hasło**: `<HASLO_BAZY>` (sprawdź w `secrets.yml`)
 - **Dostępne bazy danych**:
   - `default`
   - `zzz_MPD`
@@ -174,16 +188,19 @@ Szczegółowe instrukcje poniżej ↓
 pgAdmin jest dostępny na porcie **5050**:
 
 ### Jeśli łączysz się lokalnie (z serwera VPS):
+
 - **URL**: `http://localhost:5050`
 - **Email i hasło**: Zdefiniowane w `ansible/inventories/prod/group_vars/secrets.yml` (zmienne `pgadmin_email` i `pgadmin_password`)
 
 ### Jeśli łączysz się zdalnie (z innego komputera):
 
 **Opcja 1: Przez SSH Tunnel (zalecane)**
+
 1. Utwórz SSH tunnel dla pgAdmin: `ssh -L 5050:localhost:5050 -N user@IP_SERWERA`
 2. Otwórz w przeglądarce: `http://localhost:5050`
 
 **Opcja 2: Przez subdomenę Cloudflare (jeśli skonfigurowana)**
+
 - Jeśli masz skonfigurowaną subdomenę dla pgAdmin (np. `pgadmin.sowa.ch`) w Nginx Proxy Manager:
 - **URL**: `https://pgadmin.sowa.ch`
 - Cloudflare obsługuje HTTP/HTTPS, więc pgAdmin przez przeglądarkę może działać przez Cloudflare
@@ -193,6 +210,7 @@ pgAdmin jest dostępny na porcie **5050**:
 ## Krok po kroku - dodanie serwerów w pgAdmin
 
 ### Krok 1: Otwórz pgAdmin
+
 1. Otwórz przeglądarkę i przejdź do `http://localhost:5050` (lub odpowiedniego adresu)
 2. Zaloguj się używając email i hasła z konfiguracji
 
@@ -201,11 +219,13 @@ pgAdmin jest dostępny na porcie **5050**:
 pgAdmin ma **wbudowaną funkcję SSH Tunnel**. Masz dwie opcje:
 
 **Opcja 1: Wbudowany SSH Tunnel w pgAdmin (ZALECANE)**
+
 - Włącz "Use SSH tunneling" w zakładce "SSH Tunnel"
 - W zakładce "Connection" użyj **`localhost`** jako host (nie IP serwera!)
 - pgAdmin automatycznie tworzy tunel SSH
 
 **Opcja 2: Zewnętrzny SSH Tunnel (z terminala)**
+
 - Wyłącz "Use SSH tunneling" w zakładce "SSH Tunnel"
 - Uruchom tunel w terminalu: `ssh -L 5433:localhost:5433 -N pawel@212.127.93.27`
 - W zakładce "Connection" użyj **`localhost`** jako host
@@ -233,7 +253,7 @@ pgAdmin ma **wbudowaną funkcję SSH Tunnel**. Masz dwie opcje:
    - **Port**: `5432`
    - **Maintenance database**: `postgres`
    - **Username**: `pawel` (użytkownik bazy PostgreSQL)
-   - **Password**: `Relisys17!` (hasło do bazy PostgreSQL)
+   - **Password**: `<HASLO_BAZY>` (sprawdź w `secrets.yml`)
    - ✅ Zaznacz **"Save password"** (opcjonalnie)
 6. Kliknij **"Save"**
 
@@ -250,11 +270,12 @@ pgAdmin ma **wbudowaną funkcję SSH Tunnel**. Masz dwie opcje:
    - **Port**: `5432`
    - **Maintenance database**: `postgres`
    - **Username**: `pawel`
-   - **Password**: `Relisys17!`
+   - **Password**: `<HASLO_BAZY>` (sprawdź w `secrets.yml`)
    - ✅ Zaznacz **"Save password"** (opcjonalnie)
 6. Kliknij **"Save"**
 
-⚠️ **Uwaga**: 
+⚠️ **Uwaga**:
+
 - Jeśli używasz **wbudowanego SSH Tunnel w pgAdmin** → w "Connection" użyj `localhost`
 - Jeśli używasz **zewnętrznego SSH Tunnel** (z terminala) → w "Connection" też użyj `localhost`
 - **NIGDY nie używaj IP serwera** (`212.127.93.27`) w "Connection" jeśli masz SSH Tunnel!
@@ -280,7 +301,7 @@ pgAdmin ma **wbudowaną funkcję SSH Tunnel**. Masz dwie opcje:
    - **Port**: `5433`
    - **Maintenance database**: `postgres`
    - **Username**: `pawel` (użytkownik bazy PostgreSQL)
-   - **Password**: `Relisys17!` (hasło do bazy PostgreSQL)
+   - **Password**: `<HASLO_BAZY>` (sprawdź w `secrets.yml`)
    - ✅ Zaznacz **"Save password"** (opcjonalnie)
 6. Kliknij **"Save"**
 
@@ -297,11 +318,12 @@ pgAdmin ma **wbudowaną funkcję SSH Tunnel**. Masz dwie opcje:
    - **Port**: `5433`
    - **Maintenance database**: `postgres`
    - **Username**: `pawel`
-   - **Password**: `Relisys17!`
+   - **Password**: `<HASLO_BAZY>` (sprawdź w `secrets.yml`)
    - ✅ Zaznacz **"Save password"** (opcjonalnie)
 6. Kliknij **"Save"**
 
-⚠️ **Uwaga**: 
+⚠️ **Uwaga**:
+
 - Jeśli używasz **wbudowanego SSH Tunnel w pgAdmin** → w "Connection" użyj `localhost`
 - Jeśli używasz **zewnętrznego SSH Tunnel** (z terminala) → w "Connection" też użyj `localhost`
 - **NIGDY nie używaj IP serwera** (`212.127.93.27`) w "Connection" jeśli masz SSH Tunnel!
@@ -319,6 +341,7 @@ SSH Tunnel tworzy bezpieczne połączenie przez SSH i przekierowuje porty lokaln
 Jeśli już masz aktywny SSH tunnel (np. dla nc-postgres-test), możesz:
 
 1. **Sprawdź, które porty są już przekierowane:**
+
    ```bash
    # Sprawdź aktywne tunele
    netstat -an | grep LISTEN | grep 127.0.0.1
@@ -350,11 +373,13 @@ ssh -L 5050:localhost:5050 -N user@IP_SERWERA
 ```
 
 **Lub wszystkie w jednym tunelu (zalecane):**
+
 ```bash
 ssh -L 5432:localhost:5432 -L 5433:localhost:5433 -L 5050:localhost:5050 -N user@IP_SERWERA
 ```
 
 **Jeśli już masz tunel i chcesz tylko dodać kolejne porty:**
+
 ```bash
 # Zatrzymaj obecny tunel (Ctrl+C w terminalu gdzie działa)
 # Następnie uruchom z wszystkimi portami:
@@ -362,10 +387,12 @@ ssh -L 5432:localhost:5432 -L 5433:localhost:5433 -L 5050:localhost:5050 -N user
 ```
 
 **Gdzie:**
+
 - `user` - Twój użytkownik SSH na serwerze (prawdopodobnie `pawel`)
 - `IP_SERWERA` - IP serwera VPS (np. `212.127.93.27`)
 
 **Opcje:**
+
 - `-L` - tworzy lokalny port forwarding
 - `-N` - nie wykonuje żadnych komend, tylko utrzymuje połączenie
 - `-f` - uruchamia w tle (opcjonalnie)
@@ -373,6 +400,7 @@ ssh -L 5432:localhost:5432 -L 5433:localhost:5433 -L 5050:localhost:5050 -N user
 #### Krok 2: Połącz się w pgAdmin używając localhost
 
 Teraz w pgAdmin użyj:
+
 - **Host name/address**: `localhost` (nie IP serwera!)
 - **Port**: `5432` dla nc-postgres-1 lub `5433` dla nc-postgres-test
 
@@ -381,6 +409,7 @@ SSH tunnel automatycznie przekieruje połączenie na serwer.
 #### Krok 3: Utrzymaj tunel otwarty
 
 Tunel musi być otwarty podczas pracy z bazą. Możesz:
+
 - Zostaw terminal otwarty
 - Uruchom w tle: `ssh -f -L 5432:localhost:5432 -L 5433:localhost:5433 -L 5050:localhost:5050 -N user@IP_SERWERA`
 - Użyj `screen` lub `tmux` do zarządzania sesjami
@@ -388,6 +417,7 @@ Tunel musi być otwarty podczas pracy z bazą. Możesz:
 #### Weryfikacja tunelu
 
 Sprawdź, czy tunel działa:
+
 ```bash
 # Sprawdź czy porty są nasłuchiwane lokalnie
 netstat -an | grep 5432
@@ -420,6 +450,7 @@ Jeśli masz skonfigurowany Cloudflare Tunnel, możesz dodać PostgreSQL do tunel
 ### Rozwiązanie 3: VPN (jeśli dostępne)
 
 Jeśli masz VPN do sieci serwera:
+
 - Połącz się przez VPN
 - Użyj lokalnego IP serwera w pgAdmin (np. `192.168.1.100`)
 
@@ -446,6 +477,7 @@ Jeśli masz bezpośredni dostęp do IP serwera (bez Cloudflare):
 ## Weryfikacja połączenia
 
 Po dodaniu serwerów, możesz:
+
 1. Rozwinąć serwer w lewym panelu
 2. Rozwinąć **"Databases"**
 3. Zobaczysz listę dostępnych baz danych
@@ -453,7 +485,8 @@ Po dodaniu serwerów, możesz:
 
 ## Uwagi bezpieczeństwa
 
-⚠️ **WAŻNE**: 
+⚠️ **WAŻNE**:
+
 - **Cloudflare NIE obsługuje połączeń TCP** - nie można użyć subdomeny do bezpośredniego połączenia z PostgreSQL
 - **SSH Tunnel jest najbezpieczniejszym rozwiązaniem** - szyfruje całe połączenie i nie wymaga otwierania portów publicznie
 - Nie udostępniaj portów PostgreSQL publicznie bez odpowiedniego zabezpieczenia
@@ -462,11 +495,13 @@ Po dodaniu serwerów, możesz:
 ## Rozwiązywanie problemów
 
 ### Problem: "Nie pamiętam hasła do serwera SSH"
+
 - **Sprawdź, czy masz klucz SSH** (patrz sekcja "Dostęp do serwera" wyżej)
 - Jeśli masz klucz SSH, nie potrzebujesz hasła - użyj: `ssh pawel@212.127.93.27`
 - Jeśli nie masz klucza, użyj konsoli VPS lub zresetuj hasło (patrz sekcja "Dostęp do serwera")
 
 ### Problem: "Permission denied (publickey)" przy SSH
+
 - **Brak klucza SSH na serwerze** - musisz dodać swój klucz publiczny do `~/.ssh/authorized_keys` na serwerze
 - **Sprawdź klucz lokalnie:**
   ```bash
@@ -478,6 +513,7 @@ Po dodaniu serwerów, możesz:
   ```
 
 ### Problem: "Connection refused" lub "Connection timeout"
+
 - **Jeśli używasz Cloudflare**: Cloudflare nie obsługuje TCP - użyj SSH Tunnel (patrz wyżej)
 - Sprawdź, czy kontenery działają: `docker ps | grep postgres`
 - Sprawdź, czy porty są wystawione: `docker ps | grep postgres`
@@ -485,6 +521,7 @@ Po dodaniu serwerów, możesz:
 - **Sprawdź, czy SSH działa:** `ssh pawel@212.127.93.27` (powinno działać bez hasła, jeśli masz klucz)
 
 ### Problem: "Cloudflare blokuje połączenie"
+
 - Cloudflare proxy obsługuje tylko HTTP/HTTPS (porty 80/443)
 - PostgreSQL używa TCP (porty 5432/5433) - Cloudflare nie może tego obsłużyć
 - **Rozwiązanie**: Użyj SSH Tunnel (patrz sekcja "Połączenie zdalne")
@@ -507,15 +544,17 @@ Ten błąd oznacza, że **SSH Tunnel w pgAdmin nie działa poprawnie**. Port XXX
      - **Password**: (sprawdź, czy hasło SSH jest poprawne)
 
 2. **Przetestuj połączenie SSH ręcznie:**
+
    ```bash
    # Spróbuj połączyć się przez SSH:
    ssh pawel@212.127.93.27
-   
+
    # Jeśli działa → SSH jest OK
    # Jeśli nie działa → sprawdź hasło SSH
    ```
 
 3. **Sprawdź, czy PostgreSQL działa na serwerze:**
+
    ```bash
    # Zaloguj się na serwer i sprawdź:
    ssh pawel@212.127.93.27
@@ -524,13 +563,14 @@ Ten błąd oznacza, że **SSH Tunnel w pgAdmin nie działa poprawnie**. Port XXX
    ```
 
 4. **Przetestuj połączenie lokalnie na serwerze:**
+
    ```bash
    # Zaloguj się na serwer:
    ssh pawel@212.127.93.27
-   
+
    # Przetestuj połączenie do bazy testowej:
    docker exec nc-postgres-test psql -U pawel -d postgres -c "SELECT version();"
-   
+
    # Przetestuj połączenie do bazy produkcyjnej:
    docker exec nc-postgres-1 psql -U pawel -d postgres -c "SELECT version();"
    ```
@@ -558,11 +598,13 @@ Ten błąd oznacza, że **SSH Tunnel w pgAdmin nie działa poprawnie**. Port XXX
    - Wskaż ścieżkę do klucza prywatnego (np. `~/.ssh/id_ed25519`)
 
 ### Problem: "Authentication failed" (w pgAdmin)
+
 - Sprawdź hasło w `ansible/inventories/prod/group_vars/secrets.yml`
 - Upewnij się, że używasz poprawnego użytkownika (`pawel`)
 - **Uwaga**: To hasło do bazy PostgreSQL, nie do SSH!
 - **Jeśli używasz SSH Tunnel**: Upewnij się, że hasło SSH (w zakładce "SSH Tunnel") jest inne niż hasło do bazy (w zakładce "Connection")
 
 ### Problem: Nie widzę baz danych
+
 - Upewnij się, że używasz użytkownika z odpowiednimi uprawnieniami
 - Sprawdź, czy bazy istnieją: `docker exec nc-postgres-1 psql -U pawel -c "\l"`

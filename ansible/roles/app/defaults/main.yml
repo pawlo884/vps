@@ -21,8 +21,8 @@ app_manage_repo: true
 # Environment variables (będą przekazane do .env)
 app_env_vars:
   DEBUG: "False"
-  SECRET_KEY: ""  # Wygeneruj lub ustaw
-  DATABASE_URL: "postgresql://pawel:Relisys17!@postgres:5432/nc_prod"
+  SECRET_KEY: "" # Nadpisywane w secrets.yml (app_env_vars_secrets)
+  DATABASE_URL: "" # Prawdziwy URL w secrets.yml (app_env_vars_secrets)
   # Dodaj więcej zmiennych według potrzeb
 
 # Database connection (użyj nazwy serwisu z docker-compose)
@@ -30,7 +30,7 @@ app_db_host: postgres
 app_db_port: 5432
 app_db_name: nc_prod
 app_db_user: pawel
-app_db_password: Relisys17!
+app_db_password: "" # Prawdziwe hasło w secrets.yml (app_db_password)
 
 # Network - połącz z siecią PostgreSQL
 app_docker_network: dbnet
@@ -40,4 +40,3 @@ app_expose_port: 8000
 
 # Minio setup - wyłączone (MinIO w osobnym stacku)
 app_minio_setup_enabled: false
-

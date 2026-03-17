@@ -56,8 +56,14 @@ deploy_prod:
     - echo "$ANSIBLE_SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
     - mkdir -p ~/.ssh
     - chmod 700 ~/.ssh
-    - ssh-keyscan "$ANSIBLE_HOST" >> ~/.ssh/known_hosts
-    - ansible-playbook -i ansible/inventories/prod/hosts.ini ansible/playbooks/site.yml -e "inventory_dir=ansible/inventories/prod"
+    - ssh-keyscan -H "$ANSIBLE_HOST" >> ~/.ssh/known_hosts
+    # Inventory dla CI - host z GitLab Variable (hosts.ini ma 127.0.0.1 dla lokalnego testu)
+    - mkdir -p ansible/inventories/prod/group_vars
+    - echo "[web]" > ansible/inventories/prod/hosts_ci.ini
+    - echo "vps ansible_host=$ANSIBLE_HOST ansible_user=pawel ansible_ssh_common_args='-o StrictHostKeyChecking=accept-new' ansible_become=true" >> ansible/inventories/prod/hosts_ci.ini
+    # Sekrety - wymagana zmienna ANSIBLE_SECRETS (typ File) w GitLab CI/CD Variables (zawiera ścieżkę do pliku)
+    - cp "$ANSIBLE_SECRETS" ansible/inventories/prod/group_vars/secrets.yml
+    - ansible-playbook -i ansible/inventories/prod/hosts_ci.ini ansible/playbooks/site.yml -e "inventory_dir=ansible/inventories/prod"
   only:
     - main
   when: manual

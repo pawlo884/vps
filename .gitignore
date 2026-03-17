@@ -29,3 +29,4 @@ backups/
 
 # Prywatne konfiguracje (nie commituj z prawdziwymi danymi)
 ansible/inventories/prod/hosts.ini
+ansible/inventories/prod/hosts_ci.ini

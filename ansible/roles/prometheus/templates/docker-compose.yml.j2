@@ -82,7 +82,7 @@ services:
       - {{ postgres_network | default('dbnet') }}
       - nc_nc_network
     environment:
-      DATA_SOURCE_NAME: "postgresql://pawel:Relisys17!@nc-postgres-1:5432/postgres?sslmode=disable"
+      DATA_SOURCE_NAME: "postgresql://pawel:{{ app_db_password }}@nc-postgres-1:5432/postgres?sslmode=disable"
     restart: unless-stopped
 
 volumes:
