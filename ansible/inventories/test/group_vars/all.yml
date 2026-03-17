@@ -45,6 +45,7 @@ postgres_instances_secrets: []
 pgadmin_install: true # Włącz pgAdmin (można zmienić w secrets.yml)
 
 # Takeover - pozwól Ansible przejąć zarządzanie istniejącymi kontenerami
+portainer_install: true
 portainer_takeover: true
 nginx_proxy_manager_takeover: true
 
