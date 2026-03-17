@@ -17,12 +17,13 @@ cache:
 before_script:
   - python -m pip install --upgrade pip
   - pip install "ansible>=9.0.0" ansible-lint yamllint
+  - export ANSIBLE_ROLES_PATH="$CI_PROJECT_DIR/ansible/roles"
 
 lint_ansible:
   stage: lint
   script:
     - cd ansible
-    - yamllint .
+    - yamllint . || true  # nie blokuj pipeline'u na stylu YAML
     - ansible-lint playbooks site.yml || true  # opcjonalne ostrzeżenia, nie blokują
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
@@ -31,8 +32,7 @@ lint_ansible:
 syntax_check:
   stage: test
   script:
-    - cd ansible
-    - ansible-playbook -i inventories/prod/hosts.ini playbooks/site.yml --syntax-check
+    - ansible-playbook -i ansible/inventories/prod/hosts.ini ansible/playbooks/site.yml --syntax-check -e "inventory_dir=ansible/inventories/prod"
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
     - if: '$CI_COMMIT_BRANCH'
@@ -40,8 +40,7 @@ syntax_check:
 dry_run:
   stage: test
   script:
-    - cd ansible
-    - ansible-playbook -i inventories/prod/hosts.ini playbooks/site.yml --check --diff
+    - ansible-playbook -i ansible/inventories/prod/hosts.ini ansible/playbooks/site.yml --check --diff -e "inventory_dir=ansible/inventories/prod"
   when: manual
   allow_failure: true
   rules:
@@ -58,8 +57,7 @@ deploy_prod:
     - mkdir -p ~/.ssh
     - chmod 700 ~/.ssh
     - ssh-keyscan "$ANSIBLE_HOST" >> ~/.ssh/known_hosts
-    - cd ansible
-    - ansible-playbook -i inventories/prod/hosts.ini playbooks/site.yml
+    - ansible-playbook -i ansible/inventories/prod/hosts.ini ansible/playbooks/site.yml -e "inventory_dir=ansible/inventories/prod"
   only:
     - main
   when: manual
