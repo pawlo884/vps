@@ -79,6 +79,7 @@
         direction: "outgoing",
         policy: '{{ "allow" if ufw_default_allow_outgoing else "deny" }}',
       }
+  when: ufw_enabled | default(false)
 - name: Enable UFW
   community.general.ufw:
     state: enabled
