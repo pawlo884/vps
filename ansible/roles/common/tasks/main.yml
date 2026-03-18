@@ -22,7 +22,7 @@
   apt:
     name: unattended-upgrades
     state: present
-  when: "'unattended-upgrades' in base_packages" and (not ansible_check_mode or (python3_apt_check.rc | default(1) == 0))
+  when: "\"unattended-upgrades\" in base_packages" and (not ansible_check_mode or (python3_apt_check.rc | default(1) == 0))
 
 - name: Configure unattended-upgrades automatic reboot
   copy:
@@ -34,7 +34,7 @@
       // Restartuj tylko jeśli nie ma aktywnych użytkowników SSH (ostrożnie!)
       // Unattended-Upgrade::AutomaticRebootWithUsers "false";
     mode: "0644"
-  when: "'unattended-upgrades' in base_packages"
+  when: "\"unattended-upgrades\" in base_packages"
 
 # Docker installation
 - name: Install Docker
