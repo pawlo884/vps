@@ -47,7 +47,7 @@ dry_run:
     - if: '$CI_COMMIT_BRANCH == "main"'
 
 # Sprawdza, czy zmienne wymagane do deploy_prod są ustawione w GitLab (Settings → CI/CD → Variables).
-# Uruchom pipeline na main – jeśli job jest zielony, możesz odpalać deploy_prod.
+# ANSIBLE_SECRETS: typ File (GitLab podaje ścieżkę) LUB typ Variable (cała zawartość secrets.yml).
 check_deploy_vars:
   stage: test
   script:
@@ -55,7 +55,15 @@ check_deploy_vars:
       err=0
       if [ -z "${ANSIBLE_HOST:-}" ]; then echo "❌ ANSIBLE_HOST nie jest ustawione (Settings → CI/CD → Variables)"; err=1; else echo "✅ ANSIBLE_HOST jest ustawione"; fi
       if [ -z "${ANSIBLE_SSH_PRIVATE_KEY:-}" ]; then echo "❌ ANSIBLE_SSH_PRIVATE_KEY nie jest ustawione (Settings → CI/CD → Variables)"; err=1; else echo "✅ ANSIBLE_SSH_PRIVATE_KEY jest ustawione"; fi
-      if [ -z "${ANSIBLE_SECRETS:-}" ] || [ ! -f "${ANSIBLE_SECRETS}" ]; then echo "❌ ANSIBLE_SECRETS (typ File) nie jest ustawione lub plik nie istnieje"; err=1; else echo "✅ ANSIBLE_SECRETS jest ustawione"; fi
+      if [ -z "${ANSIBLE_SECRETS:-}" ]; then
+        echo "❌ ANSIBLE_SECRETS nie jest ustawione. Dodaj w Settings → CI/CD → Variables:"
+        echo "   Typ File – wklej zawartość secrets.yml (GitLab utworzy plik); LUB typ Variable – wklej całą zawartość secrets.yml"
+        err=1
+      elif [ -f "${ANSIBLE_SECRETS}" ]; then
+        echo "✅ ANSIBLE_SECRETS jest ustawione (typ File)"
+      else
+        echo "✅ ANSIBLE_SECRETS jest ustawione (typ Variable – zawartość)"
+      fi
       [ $err -eq 0 ] || exit 1
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
@@ -76,8 +84,13 @@ deploy_prod:
     - mkdir -p ansible/inventories/prod/group_vars
     - echo "[web]" > ansible/inventories/prod/hosts_ci.ini
     - echo "vps ansible_host=$ANSIBLE_HOST ansible_user=pawel ansible_ssh_common_args='-o StrictHostKeyChecking=accept-new' ansible_become=true" >> ansible/inventories/prod/hosts_ci.ini
-    # Sekrety - wymagana zmienna ANSIBLE_SECRETS (typ File) w GitLab CI/CD Variables (zawiera ścieżkę do pliku)
-    - cp "$ANSIBLE_SECRETS" ansible/inventories/prod/group_vars/secrets.yml
+    # Sekrety: ANSIBLE_SECRETS jako File (ścieżka) lub Variable (zawartość secrets.yml)
+    - |
+      if [ -f "${ANSIBLE_SECRETS}" ]; then
+        cp "$ANSIBLE_SECRETS" ansible/inventories/prod/group_vars/secrets.yml
+      else
+        printf '%s' "$ANSIBLE_SECRETS" > ansible/inventories/prod/group_vars/secrets.yml
+      fi
     - ansible-playbook -i ansible/inventories/prod/hosts_ci.ini ansible/playbooks/site.yml -e "inventory_dir=ansible/inventories/prod"
   only:
     - main
