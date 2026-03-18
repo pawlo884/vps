@@ -29,20 +29,20 @@ ufw_default_allow_outgoing: true
 sysctl_swappiness: 10
 
 # Docker cleanup schedule (cron format: minute hour day month weekday)
-docker_cleanup_schedule: "0 3 * * 0"  # Co niedzielę o 3:00
+docker_cleanup_schedule: "0 3 * * 0" # Co niedzielę o 3:00
 
 # WiFi configuration
-wifi_configure: false  # Ustaw na true jeśli chcesz skonfigurować WiFi
+wifi_configure: false # Ustaw na true jeśli chcesz skonfigurować WiFi
 
 # PostgreSQL test instance
 postgres_test_enabled: true
-postgres_test_password: "testpass123"  # Zmień w secrets.yml!
+postgres_test_password: "testpass123" # Zmień w secrets.yml!
 
 # PostgreSQL instances secrets (dla prometheus i monitoring)
 postgres_instances_secrets: []
 
 # pgAdmin configuration
-pgadmin_install: true  # Włącz pgAdmin (można zmienić w secrets.yml)
+pgadmin_install: true # Włącz pgAdmin (można zmienić w secrets.yml)
 
 # Takeover - pozwól Ansible przejąć zarządzanie istniejącymi kontenerami
 portainer_takeover: true
@@ -50,13 +50,13 @@ nginx_proxy_manager_takeover: true
 
 # Landing page configuration
 landing_install: true
-landing_use_nextjs: true  # Używa Next.js zamiast statycznych plików HTML
-landing_port: 3000  # Next.js domyślnie na porcie 3000
+landing_use_nextjs: true # Używa Next.js zamiast statycznych plików HTML
+landing_port: 3000 # Next.js domyślnie na porcie 3000
 
 # Landing page - konfiguracja repo
 landing_repo_url: "git@github.com:pawlo884/sowa-landing.git"
 landing_repo_branch: main
-landing_repo_dir: ~/landing-page  # Lokalizacja na VPS gdzie będzie sklonowane repo
+landing_repo_dir: ~/landing-page # Lokalizacja na VPS gdzie będzie sklonowane repo
 
 # Lista aplikacji wyświetlanych na landing page (opcjonalnie - można też w repo)
 # Jeśli puste, landing page użyje danych z repo (np. apps.json lub apps.js)
@@ -78,3 +78,6 @@ landing_applications: []
 # - Forward hostname/IP: landing
 # - Forward port: 3000  # Next.js działa na porcie 3000
 # - SSL: Request SSL Certificate (Let's Encrypt)
+n8n_data_dir: /srv/n8n
+n8n_compose_dir: "/home/{{ vps_user }}/stacks/n8n"
+n8n_network: nginx_proxy_manager_network

@@ -10,6 +10,11 @@
     - "{{ n8n_compose_dir }}"
     - "{{ n8n_data_dir }}"
 
+- name: Merge n8n_env with secrets (from secrets.yml)
+  set_fact:
+    n8n_env: "{{ n8n_env | default({}) | combine(n8n_env_secrets | default({})) }}"
+  when: n8n_env_secrets is defined
+
 - name: Generate docker-compose.yml for n8n
   template:
     src: docker-compose.yml.j2

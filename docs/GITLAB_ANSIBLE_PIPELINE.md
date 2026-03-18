@@ -24,7 +24,7 @@ W repozytorium: **Settings → CI/CD → Variables** (Expand) dodaj:
 |---------|-----|---------|-----------|
 | `ANSIBLE_SSH_PRIVATE_KEY` | Variable | Zawartość klucza prywatnego SSH (np. `~/.ssh/id_ed25519`) | ✅ Tak |
 | `ANSIBLE_HOST` | Variable | IP lub hostname serwera (np. `192.168.50.31`) | ✅ Tak |
-| `ANSIBLE_SECRETS` | File | Zawartość pliku `ansible/inventories/prod/group_vars/secrets.yml` | ✅ Tak |
+| `ANSIBLE_SECRETS` | **File** lub **Variable** | Zawartość pliku `ansible/inventories/prod/group_vars/secrets.yml` | ✅ Tak |
 
 **Jak uzyskać klucz SSH:**
 ```bash
@@ -32,10 +32,9 @@ cat ~/.ssh/id_ed25519
 # Skopiuj całą zawartość (łącznie z -----BEGIN/END-----)
 ```
 
-**Jak przygotować ANSIBLE_SECRETS (typ File):**
-1. W GitLab przy dodawaniu zmiennej wybierz **Type: File**
-2. W polu wartość wklej całą zawartość pliku `ansible/inventories/prod/group_vars/secrets.yml`
-3. GitLab utworzy tymczasowy plik – zmienna będzie zawierać ścieżkę do niego (używana w pipeline przez `cp`)
+**Jak przygotować ANSIBLE_SECRETS (dwie opcje):**
+- **Typ File:** przy dodawaniu zmiennej wybierz **Type: File**, wklej całą zawartość `ansible/inventories/prod/group_vars/secrets.yml`. GitLab utworzy plik i poda ścieżkę w zmiennej.
+- **Typ Variable:** wybierz **Type: Variable**, w polu wartość wklej **całą** zawartość pliku `secrets.yml` (wieloliniowy YAML). Pipeline zapisze to do pliku przed deployem.
 
 **Uwaga:** Klucz musi być dodany do `~/.ssh/authorized_keys` na serwerze (użytkownik `pawel`).
 
@@ -82,6 +81,26 @@ Playbook ładuje `secrets.yml` z `group_vars/`. Ten plik jest w `.gitignore` –
 2. **Inventory:** generowane automatycznie w pipeline z `$ANSIBLE_HOST`
 3. **Sekrety:** zmienna `ANSIBLE_SECRETS` (typ File) z zawartością `secrets.yml`
 4. **Serwer:** klucz SSH w `authorized_keys`, port 22 otwarty, dostępny z sieci GitLab Runnera
+
+---
+
+## Deploy na prod – kroki (każdy deploy)
+
+1. **Zmienne w GitLab** (Settings → CI/CD → Variables):
+   - `ANSIBLE_SSH_PRIVATE_KEY` – klucz prywatny SSH (Variable, chroniona).
+   - `ANSIBLE_HOST` – IP lub hostname VPS prod (Variable).
+   - `ANSIBLE_SECRETS` – **cała** zawartość `ansible/inventories/prod/group_vars/secrets.yml` (Type: **File**). Po każdej zmianie sekretów (hasła, n8n, app itd.) zaktualizuj tę zmienną w GitLab.
+
+2. **Kod na `main`:**
+   - Zrób commit i push (playbooki, role, `all.yml` – **nie** commitujesz `secrets.yml`).
+
+3. **Uruchomienie deployu:**
+   - GitLab → **CI/CD → Pipelines** → wejdź w pipeline z brancha `main`.
+   - Opcjonalnie: uruchom **dry_run** (manual) – symulacja bez zmian.
+   - Uruchom **deploy_prod** (manual) – faktyczny deploy.
+
+4. **Po deployu (np. n8n):**
+   - W **Nginx Proxy Manager** (np. https://npm.sowa.ch): dodaj Proxy Host: domena `n8n.sowa.ch` → Forward hostname `n8n`, port `5678` → SSL: Request certificate.
 
 ---
 

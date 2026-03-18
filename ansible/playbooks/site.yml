@@ -19,5 +19,6 @@
     - portainer
     - app
     - landing
+    - n8n
     # Proxy (Caddy) - wyłączony, używamy Nginx Proxy Manager
     # - proxy

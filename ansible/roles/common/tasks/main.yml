@@ -1,18 +1,28 @@
+# W trybie --check moduł apt wymaga python3-apt na hoście; przy braku pakietu pomijamy zadania apt
+- name: Check if python3-apt is available (for check mode)
+  command: python3 -c "import apt"
+  register: python3_apt_check
+  ignore_errors: true
+  changed_when: false
+  check_mode: false
+
 - name: Update apt cache
   apt:
     update_cache: yes
     cache_valid_time: 3600
+  when: not ansible_check_mode or (python3_apt_check.rc | default(1) == 0)
 
 - name: Install base packages
   apt:
     name: "{{ base_packages }}"
     state: present
+  when: not ansible_check_mode or (python3_apt_check.rc | default(1) == 0)
 
 - name: Configure automatic security updates
   apt:
     name: unattended-upgrades
     state: present
-  when: "'unattended-upgrades' in base_packages"
+  when: "'unattended-upgrades' in base_packages" and (not ansible_check_mode or (python3_apt_check.rc | default(1) == 0))
 
 - name: Configure unattended-upgrades automatic reboot
   copy:
@@ -38,7 +48,7 @@
     name: docker-compose-plugin
     state: present
     update_cache: yes
-  when: docker_install | default(false)
+  when: docker_install | default(false) and (not ansible_check_mode or (python3_apt_check.rc | default(1) == 0))
 
 - name: Add user to docker group
   user:
