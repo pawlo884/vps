@@ -64,7 +64,7 @@
     proto: "{{ item.proto }}"
     comment: "{{ item.comment | default('') }}"
   loop: "{{ ufw_allowed_ports }}"
-  when: ufw_allowed_ports is defined
+  when: ufw_allowed_ports is defined and (ufw_enabled | default(false))
 
 - name: Set UFW defaults
   community.general.ufw:
@@ -79,10 +79,10 @@
         direction: "outgoing",
         policy: '{{ "allow" if ufw_default_allow_outgoing else "deny" }}',
       }
-
 - name: Enable UFW
   community.general.ufw:
     state: enabled
+  when: ufw_enabled | default(false)
 
 # Hardening: sysctl
 - name: Configure sysctl (vm.swappiness)

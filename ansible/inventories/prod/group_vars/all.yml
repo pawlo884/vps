@@ -16,6 +16,7 @@ vps_user: pawel
 docker_install: true
 
 # Firewall UFW
+ufw_enabled: false  # na prod ufw jest zarządzany ręcznie / brak pakietu; rola common nie będzie go dotykać
 ufw_allowed_ports:
   - { port: 22, proto: tcp, comment: "SSH" }
   - { port: 80, proto: tcp, comment: "HTTP" }
