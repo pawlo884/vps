@@ -46,10 +46,25 @@ dry_run:
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
 
+# Sprawdza, czy zmienne wymagane do deploy_prod są ustawione w GitLab (Settings → CI/CD → Variables).
+# Uruchom pipeline na main – jeśli job jest zielony, możesz odpalać deploy_prod.
+check_deploy_vars:
+  stage: test
+  script:
+    - |
+      err=0
+      if [ -z "${ANSIBLE_HOST:-}" ]; then echo "❌ ANSIBLE_HOST nie jest ustawione (Settings → CI/CD → Variables)"; err=1; else echo "✅ ANSIBLE_HOST jest ustawione"; fi
+      if [ -z "${ANSIBLE_SSH_PRIVATE_KEY:-}" ]; then echo "❌ ANSIBLE_SSH_PRIVATE_KEY nie jest ustawione (Settings → CI/CD → Variables)"; err=1; else echo "✅ ANSIBLE_SSH_PRIVATE_KEY jest ustawione"; fi
+      if [ -z "${ANSIBLE_SECRETS:-}" ] || [ ! -f "${ANSIBLE_SECRETS}" ]; then echo "❌ ANSIBLE_SECRETS (typ File) nie jest ustawione lub plik nie istnieje"; err=1; else echo "✅ ANSIBLE_SECRETS jest ustawione"; fi
+      [ $err -eq 0 ] || exit 1
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+
 deploy_prod:
   stage: deploy
   needs:
     - syntax_check
+    - check_deploy_vars
   script:
     - apt-get update && apt-get install -y --no-install-recommends openssh-client
     - eval "$(ssh-agent -s)"
