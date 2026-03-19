@@ -40,8 +40,25 @@ syntax_check:
 
 dry_run:
   stage: test
+  needs:
+    - check_deploy_vars
   script:
-    - ansible-playbook -i ansible/inventories/prod/hosts.ini ansible/playbooks/site.yml --check --diff -e "inventory_dir=ansible/inventories/prod"
+    - apt-get update && apt-get install -y --no-install-recommends openssh-client
+    - eval "$(ssh-agent -s)"
+    - echo "$ANSIBLE_SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+    - ssh-keyscan -H "$ANSIBLE_HOST" >> ~/.ssh/known_hosts
+    - mkdir -p ansible/inventories/prod/group_vars
+    - echo "[web]" > ansible/inventories/prod/hosts_ci.ini
+    - echo "vps ansible_host=$ANSIBLE_HOST ansible_user=pawel ansible_ssh_common_args='-o StrictHostKeyChecking=accept-new' ansible_become=true" >> ansible/inventories/prod/hosts_ci.ini
+    - |
+      if [ -f "${ANSIBLE_SECRETS}" ]; then
+        cp "$ANSIBLE_SECRETS" ansible/inventories/prod/group_vars/secrets.yml
+      else
+        printf '%s' "$ANSIBLE_SECRETS" > ansible/inventories/prod/group_vars/secrets.yml
+      fi
+    - ansible-playbook -i ansible/inventories/prod/hosts_ci.ini ansible/playbooks/site.yml --check --diff -e "inventory_dir=ansible/inventories/prod"
   when: manual
   allow_failure: true
   rules:
