@@ -38,6 +38,7 @@
   community.docker.docker_network:
     name: "{{ n8n_network }}"
     state: present
+  when: not ansible_check_mode
 
 - name: Start n8n stack
   community.docker.docker_compose_v2:
@@ -46,3 +47,4 @@
     recreate: auto
   environment:
     COMPOSE_PROJECT_NAME: "n8n"
+  when: not ansible_check_mode
