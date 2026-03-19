@@ -55,28 +55,25 @@
     - { src: 'grafana/dashboards/containers-overview.json.j2', dest: 'containers-overview.json' }
   tags: [prometheus]
 
-- name: Download Node Exporter Full dashboard from grafana.com
+- name: Download community dashboards from grafana.com (non-blocking)
   get_url:
-    url: "https://grafana.com/api/dashboards/1860/revisions/1/download"
-    dest: "{{ prom_stack_dir }}/grafana/dashboards/node-exporter-full.json"
+    url: "{{ item.url }}"
+    dest: "{{ prom_stack_dir }}/grafana/dashboards/{{ item.dest }}"
     mode: '0644'
     force: yes
+  loop:
+    - { url: "https://grafana.com/api/dashboards/1860/revisions/latest/download", dest: "node-exporter-full.json" }
+    - { url: "https://grafana.com/api/dashboards/179/revisions/latest/download", dest: "docker-container-host.json" }
+    - { url: "https://grafana.com/api/dashboards/9628/revisions/latest/download", dest: "postgresql-database.json" }
+  register: grafana_dashboards_download
+  failed_when: false
   tags: [prometheus]
 
-- name: Download Docker Container & Host Metrics dashboard from grafana.com
-  get_url:
-    url: "https://grafana.com/api/dashboards/179/revisions/1/download"
-    dest: "{{ prom_stack_dir }}/grafana/dashboards/docker-container-host.json"
-    mode: '0644'
-    force: yes
-  tags: [prometheus]
-
-- name: Download PostgreSQL Database dashboard from grafana.com
-  get_url:
-    url: "https://grafana.com/api/dashboards/9628/revisions/1/download"
-    dest: "{{ prom_stack_dir }}/grafana/dashboards/postgresql-database.json"
-    mode: '0644'
-    force: yes
+- name: Warn if any dashboard download failed
+  debug:
+    msg: "Nie udało się pobrać dashboardu {{ item.item.dest }} z {{ item.item.url }} (status: {{ item.status_code | default('n/a') }}, msg: {{ item.msg | default('brak szczegółów') }})"
+  loop: "{{ grafana_dashboards_download.results | default([]) }}"
+  when: item.failed | default(false)
   tags: [prometheus]
 
 - name: Deploy docker-compose.yml for observability
