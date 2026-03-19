@@ -1,4 +1,15 @@
 ---
+- name: Check n8n compose path state
+  stat:
+    path: "{{ n8n_compose_dir }}"
+  register: n8n_compose_path
+
+- name: Remove wrong n8n compose path when it's not a directory
+  file:
+    path: "{{ n8n_compose_dir }}"
+    state: absent
+  when: n8n_compose_path.stat.exists and (not n8n_compose_path.stat.isdir)
+
 - name: Ensure n8n directories exist
   file:
     path: "{{ item }}"
