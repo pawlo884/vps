@@ -33,6 +33,5 @@
     project_src: "{{ n8n_compose_dir }}"
     state: present
     recreate: auto
-  become_user: "{{ n8n_user }}"
   environment:
     COMPOSE_PROJECT_NAME: "n8n"
