@@ -11,9 +11,10 @@ app_repo_branch: main
 
 # Docker configuration
 app_docker_image: "{{ app_name }}:latest"
-app_dockerfile_path: "Dockerfile.prod"
+app_dockerfile_path: "deployments/docker/Dockerfile.prod"
 app_compose_dir: "/home/{{ vps_user }}/stacks/{{ app_name }}"
 app_env_file: ".env"
+app_redis_password: ""
 app_manage_env: true
 app_env_force: false
 app_manage_repo: true

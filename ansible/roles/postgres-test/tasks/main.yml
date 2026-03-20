@@ -4,12 +4,15 @@
   register: old_container_check
   changed_when: false
   failed_when: false
-  when: postgres_test_enabled | default(true)
+  when:
+    - postgres_test_enabled | default(true)
+    - postgres_test_force_recreate | default(false)
 
 - name: Stop old test PostgreSQL container if exists
   command: docker stop {{ postgres_test_container_name }}
   when: 
     - postgres_test_enabled | default(true)
+    - postgres_test_force_recreate | default(false)
     - old_container_check.stdout != "not_found"
   ignore_errors: yes
   register: stop_result
@@ -19,6 +22,7 @@
   command: docker rm {{ postgres_test_container_name }}
   when: 
     - postgres_test_enabled | default(true)
+    - postgres_test_force_recreate | default(false)
     - old_container_check.stdout != "not_found"
   ignore_errors: yes
   register: rm_result

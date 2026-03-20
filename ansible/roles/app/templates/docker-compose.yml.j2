@@ -127,8 +127,8 @@ services:
       DJANGO_SETTINGS_MODULE: {{ app_django_settings | default('nc.settings.prod') }}
       CELERY_STATE_DB: /var/lib/celery/worker_state_default
       TZ: {{ app_timezone | default('Europe/Warsaw') }}
-      CELERY_BROKER_URL: {{ app_celery_broker | default('redis://:${REDIS_PASSWORD}@redis:6379/0') }}
-      CELERY_RESULT_BACKEND: {{ app_celery_backend | default('redis://:${REDIS_PASSWORD}@redis:6379/0') }}
+      CELERY_BROKER_URL: {{ app_celery_broker | default('redis://:' ~ (app_redis_password | default('')) ~ '@redis:6379/0') }}
+      CELERY_RESULT_BACKEND: {{ app_celery_backend | default('redis://:' ~ (app_redis_password | default('')) ~ '@redis:6379/0') }}
       CELERY_WORKER_ENABLE_REMOTE_CONTROL: "true"
       CELERY_WORKER_SEND_TASK_EVENTS: "true"
       CELERY_TASK_SEND_SENT_EVENT: "true"
@@ -171,8 +171,8 @@ services:
       DJANGO_SETTINGS_MODULE: {{ app_django_settings | default('nc.settings.prod') }}
       CELERY_STATE_DB: /var/lib/celery/worker_state_import
       TZ: {{ app_timezone | default('Europe/Warsaw') }}
-      CELERY_BROKER_URL: {{ app_celery_broker | default('redis://:${REDIS_PASSWORD}@redis:6379/0') }}
-      CELERY_RESULT_BACKEND: {{ app_celery_backend | default('redis://:${REDIS_PASSWORD}@redis:6379/0') }}
+      CELERY_BROKER_URL: {{ app_celery_broker | default('redis://:' ~ (app_redis_password | default('')) ~ '@redis:6379/0') }}
+      CELERY_RESULT_BACKEND: {{ app_celery_backend | default('redis://:' ~ (app_redis_password | default('')) ~ '@redis:6379/0') }}
       CELERY_WORKER_ENABLE_REMOTE_CONTROL: "true"
       CELERY_WORKER_SEND_TASK_EVENTS: "true"
       CELERY_TASK_SEND_SENT_EVENT: "true"
@@ -214,8 +214,8 @@ services:
     environment:
       DJANGO_SETTINGS_MODULE: {{ app_django_settings | default('nc.settings.prod') }}
       TZ: {{ app_timezone | default('Europe/Warsaw') }}
-      CELERY_BROKER_URL: {{ app_celery_broker | default('redis://:${REDIS_PASSWORD}@redis:6379/0') }}
-      CELERY_RESULT_BACKEND: {{ app_celery_backend | default('redis://:${REDIS_PASSWORD}@redis:6379/0') }}
+      CELERY_BROKER_URL: {{ app_celery_broker | default('redis://:' ~ (app_redis_password | default('')) ~ '@redis:6379/0') }}
+      CELERY_RESULT_BACKEND: {{ app_celery_backend | default('redis://:' ~ (app_redis_password | default('')) ~ '@redis:6379/0') }}
       CELERY_WORKER_ENABLE_REMOTE_CONTROL: "true"
       CELERY_WORKER_SEND_TASK_EVENTS: "true"
       CELERY_TASK_SEND_SENT_EVENT: "true"
@@ -240,14 +240,14 @@ services:
 
   redis:
     image: redis:7.2-alpine
-    command: redis-server /usr/local/etc/redis/redis.conf --requirepass {{ app_redis_password | default('${REDIS_PASSWORD}') }}
+    command: redis-server /usr/local/etc/redis/redis.conf --requirepass {{ app_redis_password | default('') }}
     volumes:
       - redis_data:/data
       - {{ app_dir }}/redis.conf:/usr/local/etc/redis/redis.conf:ro
     networks:
       - {{ app_docker_network }}
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "{{ app_redis_password | default('${REDIS_PASSWORD}') }}", "ping"]
+      test: ["CMD", "redis-cli", "-a", "{{ app_redis_password | default('') }}", "ping"]
       interval: 5s
       timeout: 3s
       retries: 5
@@ -264,9 +264,9 @@ services:
       - -c
       - >
         sleep 20 &&
-        celery -A nc.celery --broker={{ app_celery_broker | default('redis://:${REDIS_PASSWORD}@redis:6379/0') }}
+        celery -A nc.celery --broker={{ app_celery_broker | default('redis://:' ~ (app_redis_password | default('')) ~ '@redis:6379/0') }}
         flower --port=5555 --basic_auth={{ app_flower_basic_auth | default('${FLOWER_USER}:${FLOWER_PASSWORD}') }}
-        --persistent=True --db=/var/lib/flower/flower.db --inspect_timeout=30 --broker_api={{ app_celery_broker | default('redis://:${REDIS_PASSWORD}@redis:6379/0') }}
+        --persistent=True --db=/var/lib/flower/flower.db --inspect_timeout=30 --broker_api={{ app_celery_broker | default('redis://:' ~ (app_redis_password | default('')) ~ '@redis:6379/0') }}
     ports:
       - "5555:5555"
     volumes:
@@ -277,8 +277,8 @@ services:
     environment:
       DJANGO_SETTINGS_MODULE: {{ app_django_settings | default('nc.settings.prod') }}
       TZ: {{ app_timezone | default('Europe/Warsaw') }}
-      CELERY_BROKER_URL: {{ app_celery_broker | default('redis://:${REDIS_PASSWORD}@redis:6379/0') }}
-      CELERY_RESULT_BACKEND: {{ app_celery_backend | default('redis://:${REDIS_PASSWORD}@redis:6379/0') }}
+      CELERY_BROKER_URL: {{ app_celery_broker | default('redis://:' ~ (app_redis_password | default('')) ~ '@redis:6379/0') }}
+      CELERY_RESULT_BACKEND: {{ app_celery_backend | default('redis://:' ~ (app_redis_password | default('')) ~ '@redis:6379/0') }}
       CELERY_WORKER_ENABLE_REMOTE_CONTROL: "true"
       CELERY_WORKER_SEND_TASK_EVENTS: "true"
       CELERY_TASK_SEND_SENT_EVENT: "true"
