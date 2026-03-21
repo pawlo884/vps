@@ -94,4 +94,5 @@
   environment:
     COMPOSE_PROJECT_NAME: "{{ app_name }}"
     REDIS_PASSWORD: "{{ app_redis_password | default('') }}"
+  when: app_manage_containers | default(true)
 

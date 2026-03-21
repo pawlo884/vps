@@ -85,6 +85,7 @@ app_env_force: true
 app_compose_build_policy: never
 app_compose_pull_policy: never
 app_compose_recreate_policy: auto
+app_manage_containers: false
 n8n_data_dir: /srv/n8n
 n8n_compose_dir: "/home/{{ vps_user }}/stacks/n8n"
 n8n_network: nginx_proxy_manager_network
