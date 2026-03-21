@@ -86,11 +86,12 @@
   community.docker.docker_compose_v2:
     project_src: "{{ app_compose_dir }}"
     state: present
-    build: always
-    pull: always
-    recreate: always
+    build: "{{ app_compose_build_policy | default('always') }}"
+    pull: "{{ app_compose_pull_policy | default('always') }}"
+    recreate: "{{ app_compose_recreate_policy | default('always') }}"
     remove_orphans: true
   become_user: "{{ app_user }}"
   environment:
     COMPOSE_PROJECT_NAME: "{{ app_name }}"
+    REDIS_PASSWORD: "{{ app_redis_password | default('') }}"
 
