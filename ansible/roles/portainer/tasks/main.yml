@@ -51,6 +51,7 @@
     project_src: "{{ portainer_compose_dir_expanded }}"
     state: present
     recreate: auto
+    pull: always
     remove_orphans: yes
   become_user: "{{ vps_user }}"
   environment:
