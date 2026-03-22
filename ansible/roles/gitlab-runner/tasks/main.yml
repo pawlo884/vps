@@ -21,13 +21,18 @@
     repo: "deb [signed-by=/usr/share/keyrings/gitlab-runner-archive-keyring.gpg] https://packages.gitlab.com/runner/gitlab-runner/ubuntu/ {{ ansible_distribution_release }} main"
     state: present
     filename: gitlab-runner
+    update_cache: yes
+  when: gitlab_runner_install | default(true)
+
+- name: Update apt cache after adding GitLab Runner repository
+  apt:
+    update_cache: yes
   when: gitlab_runner_install | default(true)
 
 - name: Install gitlab-runner
   apt:
     name: gitlab-runner
     state: latest
-    update_cache: yes
   when: gitlab_runner_install | default(true)
   notify: restart gitlab-runner
 
