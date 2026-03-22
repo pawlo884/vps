@@ -18,7 +18,7 @@
 
 - name: Add GitLab Runner apt repository
   apt_repository:
-    repo: "deb [signed-by=/usr/share/keyrings/gitlab-runner-archive-keyring.gpg] https://packages.gitlab.com/runner/gitlab-runner/ubuntu/ {{ ansible_distribution_release }} main"
+    repo: "deb [signed-by=/usr/share/keyrings/gitlab-runner-archive-keyring.gpg] https://packages.gitlab.com/runner/gitlab-runner/ubuntu/ {{ 'jammy' if ansible_distribution_release == 'noble' else ansible_distribution_release }} main"
     state: present
     filename: gitlab-runner
     update_cache: yes
