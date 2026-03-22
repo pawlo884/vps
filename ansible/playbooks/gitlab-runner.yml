@@ -1,0 +1,7 @@
+---
+- hosts: web
+  become: true
+  vars_files:
+    - "{{ inventory_dir }}/group_vars/secrets.yml"
+  roles:
+    - { role: gitlab-runner, tags: [gitlab_runner] }

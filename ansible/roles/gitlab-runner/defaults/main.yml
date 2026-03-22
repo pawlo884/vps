@@ -1,0 +1,22 @@
+---
+gitlab_runner_install: true
+
+# GitLab instance
+gitlab_runner_url: "https://gitlab.com"
+
+# Runner identity
+gitlab_runner_name: "{{ ansible_hostname }}"
+gitlab_runner_tags: []
+gitlab_runner_run_untagged: true
+gitlab_runner_concurrent: 4
+gitlab_runner_locked: false
+
+# Executor: docker (recommended, uses existing Docker on VPS)
+gitlab_runner_executor: "docker"
+gitlab_runner_docker_image: "python:3.12-slim"
+gitlab_runner_docker_privileged: false
+gitlab_runner_docker_volumes:
+  - "/cache"
+
+# Token from secrets.yml (required):
+# gitlab_runner_token: "glrt-xxxxxxxxxxxxxxxxxxxx"

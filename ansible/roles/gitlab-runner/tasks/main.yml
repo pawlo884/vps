@@ -1,0 +1,74 @@
+---
+- name: Install required dependencies
+  apt:
+    name:
+      - curl
+      - ca-certificates
+    state: present
+    update_cache: yes
+  when: gitlab_runner_install | default(true)
+
+- name: Add GitLab Runner apt repository key
+  get_url:
+    url: https://packages.gitlab.com/runner/gitlab-runner/gpgkey
+    dest: /usr/share/keyrings/gitlab-runner-archive-keyring.gpg
+    mode: '0644'
+  when: gitlab_runner_install | default(true)
+
+- name: Add GitLab Runner apt repository
+  apt_repository:
+    repo: "deb [signed-by=/usr/share/keyrings/gitlab-runner-archive-keyring.gpg] https://packages.gitlab.com/runner/gitlab-runner/ubuntu/ {{ ansible_distribution_release }} main"
+    state: present
+    filename: gitlab-runner
+  when: gitlab_runner_install | default(true)
+
+- name: Install gitlab-runner
+  apt:
+    name: gitlab-runner
+    state: latest
+    update_cache: yes
+  when: gitlab_runner_install | default(true)
+  notify: restart gitlab-runner
+
+- name: Ensure gitlab-runner service is enabled and started
+  systemd:
+    name: gitlab-runner
+    enabled: yes
+    state: started
+  when: gitlab_runner_install | default(true)
+
+- name: Check if runner is already registered
+  command: gitlab-runner list
+  register: runner_list
+  changed_when: false
+  failed_when: false
+  when: gitlab_runner_install | default(true)
+
+- name: Register GitLab Runner
+  command: >
+    gitlab-runner register
+    --non-interactive
+    --url "{{ gitlab_runner_url }}"
+    --token "{{ gitlab_runner_token }}"
+    --name "{{ gitlab_runner_name }}"
+    --executor "{{ gitlab_runner_executor }}"
+    --docker-image "{{ gitlab_runner_docker_image }}"
+    --docker-privileged="{{ gitlab_runner_docker_privileged | lower }}"
+    --docker-volumes "{{ gitlab_runner_docker_volumes | join(',') }}"
+    {% if gitlab_runner_tags | length > 0 %}--tag-list "{{ gitlab_runner_tags | join(',') }}"{% endif %}
+    --run-untagged="{{ gitlab_runner_run_untagged | lower }}"
+    --locked="{{ gitlab_runner_locked | lower }}"
+  no_log: true
+  when:
+    - gitlab_runner_install | default(true)
+    - gitlab_runner_token is defined
+    - gitlab_runner_name not in runner_list.stdout | default('')
+  notify: restart gitlab-runner
+
+- name: Configure concurrent jobs
+  lineinfile:
+    path: /etc/gitlab-runner/config.toml
+    regexp: '^concurrent\s*='
+    line: "concurrent = {{ gitlab_runner_concurrent }}"
+  notify: restart gitlab-runner
+  when: gitlab_runner_install | default(true)

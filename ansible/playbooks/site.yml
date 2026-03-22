@@ -19,5 +19,6 @@
     - { role: app, tags: [app, deploy] }
     - { role: landing, tags: [landing, deploy] }
     - { role: n8n, tags: [n8n, deploy] }
+    - { role: gitlab-runner, tags: [gitlab_runner] }
     # Proxy (Caddy) - wyłączony, używamy Nginx Proxy Manager
     # - { role: proxy, tags: [proxy] }
