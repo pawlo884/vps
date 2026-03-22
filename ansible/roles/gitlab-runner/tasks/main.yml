@@ -8,11 +8,12 @@
     update_cache: yes
   when: gitlab_runner_install | default(true)
 
-- name: Add GitLab Runner apt repository key
-  get_url:
-    url: https://packages.gitlab.com/runner/gitlab-runner/gpgkey
-    dest: /usr/share/keyrings/gitlab-runner-archive-keyring.gpg
-    mode: '0644'
+- name: Add GitLab Runner apt repository key (dearmored)
+  shell: |
+    curl -fsSL https://packages.gitlab.com/runner/gitlab-runner/gpgkey | \
+    gpg --dearmor > /usr/share/keyrings/gitlab-runner-archive-keyring.gpg
+  args:
+    creates: /usr/share/keyrings/gitlab-runner-archive-keyring.gpg
   when: gitlab_runner_install | default(true)
 
 - name: Add GitLab Runner apt repository
