@@ -3,21 +3,21 @@
   vars_files:
     - "{{ inventory_dir }}/group_vars/secrets.yml"
   roles:
-    - common
-    - fail2ban
-    - { role: wifi, when: wifi_configure | default(false) }
-    - web
-    - db
-    - { role: storage, when: storage_enable | default(false) }
-    - postgres
-    - postgres-test
-    - qdrant
-    - nginx-proxy-manager
-    - backups
-    - monitoring
-    - portainer
-    - app
-    - landing
-    - n8n
+    - { role: common, tags: [common] }
+    - { role: fail2ban, tags: [fail2ban, security] }
+    - { role: wifi, when: wifi_configure | default(false), tags: [wifi, network] }
+    - { role: web, tags: [web] }
+    - { role: db, tags: [db] }
+    - { role: storage, when: storage_enable | default(false), tags: [storage] }
+    - { role: postgres, tags: [postgres, db] }
+    - { role: postgres-test, tags: [postgres_test, db] }
+    - { role: qdrant, tags: [qdrant, db] }
+    - { role: nginx-proxy-manager, tags: [nginx_proxy_manager, proxy] }
+    - { role: backups, tags: [backups] }
+    - { role: monitoring, tags: [monitoring] }
+    - { role: portainer, tags: [portainer, docker] }
+    - { role: app, tags: [app, deploy] }
+    - { role: landing, tags: [landing, deploy] }
+    - { role: n8n, tags: [n8n, deploy] }
     # Proxy (Caddy) - wyłączony, używamy Nginx Proxy Manager
-    # - proxy
+    # - { role: proxy, tags: [proxy] }

@@ -16,9 +16,3 @@
   register: nginx_test
   changed_when: false
   when: nginx_install | default(false)
-
-- name: Restart nginx if config valid
-  systemd:
-    name: nginx
-    state: restarted
-  when: nginx_install | default(false) and nginx_test.rc == 0

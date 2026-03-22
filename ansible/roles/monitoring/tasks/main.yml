@@ -1,28 +1,4 @@
 ---
-- name: Check if Netdata container already exists
-  shell: docker ps -a --format '{{ '{{' }}.Names{{ '}}' }}' --filter "name={{ monitoring_container_name }}"
-  register: netdata_exists
-  changed_when: false
-  failed_when: false
-
-- name: Check if Netdata is running
-  shell: docker ps --format '{{ '{{' }}.Names{{ '}}' }}' --filter "name={{ monitoring_container_name }}"
-  register: netdata_running
-  changed_when: false
-  failed_when: false
-  when: netdata_exists.stdout != ""
-
-- name: Check if port 19999 is already in use
-  shell: ss -tuln | grep -q ":19999" && echo "in_use" || echo "free"
-  register: port_check
-  changed_when: false
-  failed_when: false
-
-- name: Remove existing Netdata container if exists (only if not running)
-  command: docker rm -f {{ monitoring_container_name }}
-  when: 
-    - netdata_exists.stdout != ""
-    - netdata_running.stdout == ""
 
 - name: Ensure Netdata go.d directory exists
   file:
@@ -83,20 +59,25 @@
   no_log: true
 
 - name: Start Netdata container
-  command: >
-    docker run -d
-    --name={{ monitoring_container_name }}
-    -p 127.0.0.1:{{ monitoring_port }}:19999
-    -v netdata-data:/var/lib/netdata
-    -v netdata-config:/etc/netdata
-    {% if monitoring_auth_enabled | default(true) and monitoring_auth_user is defined and monitoring_auth_password is defined %}-v {{ monitoring_config_path }}/.htpasswd:/etc/netdata/.htpasswd:ro{% endif %}
-    --network={{ postgres_network | default('dbnet') }}
-    --cap-add SYS_PTRACE
-    --security-opt apparmor=unconfined
-    --restart unless-stopped
-    {{ monitoring_image }}
-  when: 
-    - monitoring_install | default(true)
-    - (netdata_running is not defined or netdata_running.stdout is not defined or netdata_running.stdout == "")
-    - port_check.stdout != "in_use"
+  community.docker.docker_container:
+    name: "{{ monitoring_container_name }}"
+    image: "{{ monitoring_image }}"
+    state: started
+    restart_policy: unless-stopped
+    published_ports:
+      - "127.0.0.1:{{ monitoring_port }}:19999"
+    volumes: >-
+      {{
+        ['netdata-data:/var/lib/netdata', 'netdata-config:/etc/netdata'] +
+        ([monitoring_config_path + '/.htpasswd:/etc/netdata/.htpasswd:ro']
+         if (monitoring_auth_enabled | default(true) and monitoring_auth_user is defined and monitoring_auth_password is defined)
+         else [])
+      }}
+    networks:
+      - name: "{{ postgres_network | default('dbnet') }}"
+    capabilities:
+      - SYS_PTRACE
+    security_opts:
+      - apparmor=unconfined
+  when: monitoring_install | default(true)
 

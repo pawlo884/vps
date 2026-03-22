@@ -73,21 +73,40 @@
     - landing_git_dir.stat.exists == true
 
 # Sekcja: Kopiowanie statycznych plików HTML (tylko jeśli NIE używa Next.js)
-- name: Copy HTML files from repository to html directory (only for static HTML mode)
-  shell: |
-    cd {{ landing_repo_dir_expanded }}
-    find . -type f \( -name "*.html" -o -name "*.css" -o -name "*.js" -o -name "*.json" -o -name "*.png" -o -name "*.jpg" -o -name "*.jpeg" -o -name "*.gif" -o -name "*.svg" -o -name "*.ico" -o -name "*.woff" -o -name "*.woff2" -o -name "*.ttf" -o -name "*.eot" \) \
-      ! -path "./.git/*" \
-      ! -name ".gitignore" \
-      ! -name "README.md" \
-      ! -name ".dockerignore" \
-      -exec cp --parents {} {{ landing_compose_dir_expanded }}/html/ \;
+- name: Sync HTML files from repository to html directory (only for static HTML mode)
+  ansible.posix.synchronize:
+    src: "{{ landing_repo_dir_expanded }}/"
+    dest: "{{ landing_compose_dir_expanded }}/html/"
+    recursive: yes
+    delete: no
+    checksum: yes
+    rsync_opts:
+      - "--exclude=.git/"
+      - "--exclude=.gitignore"
+      - "--exclude=README.md"
+      - "--exclude=.dockerignore"
+      - "--include=*.html"
+      - "--include=*.css"
+      - "--include=*.js"
+      - "--include=*.json"
+      - "--include=*.png"
+      - "--include=*.jpg"
+      - "--include=*.jpeg"
+      - "--include=*.gif"
+      - "--include=*.svg"
+      - "--include=*.ico"
+      - "--include=*.woff"
+      - "--include=*.woff2"
+      - "--include=*.ttf"
+      - "--include=*.eot"
+      - "--include=*/"
+      - "--exclude=*"
+  become: yes
   become_user: "{{ vps_user }}"
-  when: 
+  when:
     - landing_install | default(true)
     - landing_use_repo
     - not (landing_use_nextjs | default(false))
-  ignore_errors: yes
 
 - name: Set correct permissions on copied files
   file:
@@ -185,24 +204,22 @@
     path: "{{ landing_repo_dir_expanded }}/next.config.ts"
     regexp: '(const nextConfig: NextConfig = \{)(.*?)(\};)'
     replace: '\1\n  output: "standalone",\2\n\3'
-  when: 
+  register: nextconfig_replace
+  when:
     - landing_install | default(true)
     - landing_use_repo
     - landing_use_nextjs | default(false)
-  ignore_errors: yes
+  failed_when: false
 
-- name: Ensure next.config.ts has standalone output (alternative method)
-  lineinfile:
-    path: "{{ landing_repo_dir_expanded }}/next.config.ts"
-    regexp: '^(\s*)output:'
-    line: '  output: "standalone",'
-    insertafter: 'const nextConfig: NextConfig = {'
-    state: present
-  when: 
+- name: Warn if next.config.ts update failed
+  debug:
+    msg: "Nie udało się zaktualizować next.config.ts (plik może nie istnieć lub mieć inną strukturę)"
+  when:
     - landing_install | default(true)
     - landing_use_repo
     - landing_use_nextjs | default(false)
-  ignore_errors: yes
+    - nextconfig_replace is defined
+    - nextconfig_replace.failed | default(false)
 
 - name: Generate docker-compose.yml for Landing
   template:

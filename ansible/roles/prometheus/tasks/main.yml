@@ -91,9 +91,11 @@
   tags: [prometheus]
 
 - name: Bring up observability stack
-  command: docker compose -f {{ prom_stack_dir }}/docker-compose.yml up -d --remove-orphans
-  args:
-    chdir: "{{ prom_stack_dir }}"
+  community.docker.docker_compose_v2:
+    project_src: "{{ prom_stack_dir }}"
+    state: present
+    recreate: auto
+    remove_orphans: yes
   tags: [prometheus]
 
 
