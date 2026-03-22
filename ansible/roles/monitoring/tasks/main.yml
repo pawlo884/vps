@@ -58,6 +58,25 @@
     - monitoring_auth_password is defined
   no_log: true
 
+- name: Check if Netdata is already running
+  shell: docker ps --format '{{ '{{' }}.Names{{ '}}' }}' --filter "name={{ monitoring_container_name }}"
+  register: netdata_running
+  changed_when: false
+  failed_when: false
+  when: monitoring_install | default(true)
+
+- name: Check if port {{ monitoring_port }} is already in use
+  shell: ss -tuln | grep -q ":{{ monitoring_port }}" && echo "in_use" || echo "free"
+  register: netdata_port_check
+  changed_when: false
+  failed_when: false
+  when: monitoring_install | default(true)
+
+- name: Build Netdata volumes list
+  set_fact:
+    netdata_volumes: "{{ ['netdata-data:/var/lib/netdata', 'netdata-config:/etc/netdata'] + ([monitoring_config_path + '/.htpasswd:/etc/netdata/.htpasswd:ro'] if (monitoring_auth_enabled | default(true) and monitoring_auth_user is defined and monitoring_auth_password is defined) else []) }}"
+  when: monitoring_install | default(true)
+
 - name: Start Netdata container
   community.docker.docker_container:
     name: "{{ monitoring_container_name }}"
@@ -66,18 +85,18 @@
     restart_policy: unless-stopped
     published_ports:
       - "127.0.0.1:{{ monitoring_port }}:19999"
-    volumes: >-
-      {{
-        ['netdata-data:/var/lib/netdata', 'netdata-config:/etc/netdata'] +
-        ([monitoring_config_path + '/.htpasswd:/etc/netdata/.htpasswd:ro']
-         if (monitoring_auth_enabled | default(true) and monitoring_auth_user is defined and monitoring_auth_password is defined)
-         else [])
-      }}
+    volumes: "{{ netdata_volumes }}"
     networks:
       - name: "{{ postgres_network | default('dbnet') }}"
     capabilities:
       - SYS_PTRACE
     security_opts:
       - apparmor=unconfined
-  when: monitoring_install | default(true)
+    comparisons:
+      networks: strict
+      volumes: strict
+      '*': ignore
+  when:
+    - monitoring_install | default(true)
+    - netdata_running.stdout | default('') == '' or netdata_port_check.stdout | default('free') == 'free'
 
