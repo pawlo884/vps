@@ -22,14 +22,14 @@
     name: gitlab-runner
     enabled: yes
     state: started
-  when: gitlab_runner_install | default(true)
+  when: gitlab_runner_install | default(true) and not ansible_check_mode
 
 - name: Check if runner is already registered
   command: gitlab-runner list
   register: runner_list
   changed_when: false
   failed_when: false
-  when: gitlab_runner_install | default(true)
+  when: gitlab_runner_install | default(true) and not ansible_check_mode
 
 - name: Register GitLab Runner
   command: >
@@ -48,6 +48,7 @@
   no_log: true
   when:
     - gitlab_runner_install | default(true)
+    - not ansible_check_mode
     - gitlab_runner_token is defined
     - gitlab_runner_name not in runner_list.stdout | default('')
   notify: restart gitlab-runner
@@ -58,4 +59,4 @@
     regexp: '^concurrent\s*='
     line: "concurrent = {{ gitlab_runner_concurrent }}"
   notify: restart gitlab-runner
-  when: gitlab_runner_install | default(true)
+  when: gitlab_runner_install | default(true) and not ansible_check_mode
