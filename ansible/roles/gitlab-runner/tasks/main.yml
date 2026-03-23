@@ -8,16 +8,12 @@
     update_cache: yes
   when: gitlab_runner_install | default(true)
 
-- name: Download gitlab-runner deb package
-  get_url:
-    url: "https://gitlab-runner-downloads.s3.amazonaws.com/latest/deb/gitlab-runner_amd64.deb"
-    dest: /tmp/gitlab-runner_amd64.deb
-    force: yes
-  when: gitlab_runner_install | default(true)
-
-- name: Install gitlab-runner from deb package
-  apt:
-    deb: /tmp/gitlab-runner_amd64.deb
+- name: Download and install gitlab-runner
+  shell: |
+    curl -L -o /tmp/gitlab-runner_amd64.deb "https://gitlab-runner-downloads.s3.amazonaws.com/latest/deb/gitlab-runner_amd64.deb"
+    dpkg -i /tmp/gitlab-runner_amd64.deb
+  args:
+    creates: /usr/bin/gitlab-runner
   when: gitlab_runner_install | default(true)
   notify: restart gitlab-runner
 
