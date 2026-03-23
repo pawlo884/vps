@@ -8,17 +8,16 @@
     update_cache: yes
   when: gitlab_runner_install | default(true)
 
-- name: Setup GitLab Runner repository via official script
-  shell: curl -L "https://packages.gitlab.com/install/repositories/runner/gitlab-runner/script.deb.sh" | bash
-  args:
-    creates: /etc/apt/sources.list.d/runner_gitlab-runner.list
+- name: Download gitlab-runner deb package
+  get_url:
+    url: "https://gitlab-runner-downloads.s3.amazonaws.com/latest/deb/gitlab-runner_amd64.deb"
+    dest: /tmp/gitlab-runner_amd64.deb
+    force: yes
   when: gitlab_runner_install | default(true)
 
-- name: Install gitlab-runner
+- name: Install gitlab-runner from deb package
   apt:
-    name: gitlab-runner
-    state: present
-    update_cache: yes
+    deb: /tmp/gitlab-runner_amd64.deb
   when: gitlab_runner_install | default(true)
   notify: restart gitlab-runner
 
