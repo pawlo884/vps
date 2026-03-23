@@ -3,3 +3,4 @@
   systemd:
     name: gitlab-runner
     state: restarted
+  when: not ansible_check_mode
