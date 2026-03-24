@@ -10,6 +10,10 @@ variables:
   # default callback (community.general.yaml został usunięty w collection 12+)
   ANSIBLE_STDOUT_CALLBACK: "ansible.builtin.default"
   ANSIBLE_FORCE_COLOR: "true"
+  # Tagi Ansible - zostaw puste żeby uruchomić wszystko, lub podaj np. "app,landing" / "gitlab_runner"
+  # Dostępne tagi: common, fail2ban, web, db, postgres, postgres_test, qdrant, nginx_proxy_manager,
+  #                backups, monitoring, portainer, app, landing, n8n, gitlab_runner, storage, security
+  DEPLOY_TAGS: ""
 
 cache:
   paths:
@@ -58,7 +62,10 @@ dry_run:
       else
         printf '%s' "$ANSIBLE_SECRETS" > ansible/inventories/prod/group_vars/secrets.yml
       fi
-    - ansible-playbook -i ansible/inventories/prod/hosts_ci.ini ansible/playbooks/site.yml --check --diff -e "inventory_dir=ansible/inventories/prod"
+    - |
+      TAGS_ARG=""
+      if [ -n "${DEPLOY_TAGS}" ]; then TAGS_ARG="--tags ${DEPLOY_TAGS}"; fi
+      ansible-playbook -i ansible/inventories/prod/hosts_ci.ini ansible/playbooks/site.yml --check --diff -e "inventory_dir=ansible/inventories/prod" $TAGS_ARG
   when: manual
   allow_failure: true
   rules:
@@ -114,7 +121,10 @@ deploy_prod:
       else
         printf '%s' "$ANSIBLE_SECRETS" > ansible/inventories/prod/group_vars/secrets.yml
       fi
-    - ansible-playbook -i ansible/inventories/prod/hosts_ci.ini ansible/playbooks/site.yml -e "inventory_dir=ansible/inventories/prod"
+    - |
+      TAGS_ARG=""
+      if [ -n "${DEPLOY_TAGS}" ]; then TAGS_ARG="--tags ${DEPLOY_TAGS}"; fi
+      ansible-playbook -i ansible/inventories/prod/hosts_ci.ini ansible/playbooks/site.yml -e "inventory_dir=ansible/inventories/prod" $TAGS_ARG
   only:
     - main
   when: manual
