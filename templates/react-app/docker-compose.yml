@@ -1,0 +1,23 @@
+services:
+  react-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        BUILD_OUTPUT: dist
+        # BUILD_CMD: build
+        # VITE_API_URL: https://api.twoja-domena.pl
+    container_name: react-app
+    restart: unless-stopped
+    networks:
+      - nginx_proxy_manager_network
+    logging:
+      driver: json-file
+      options:
+        max-file: "3"
+        max-size: "50m"
+
+networks:
+  nginx_proxy_manager_network:
+    name: nginx_proxy_manager_network
+    external: true

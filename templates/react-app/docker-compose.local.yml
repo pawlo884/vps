@@ -1,0 +1,11 @@
+services:
+  react-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        BUILD_OUTPUT: dist
+    container_name: react-app-local
+    restart: unless-stopped
+    ports:
+      - "8080:80"
