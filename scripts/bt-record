@@ -1,0 +1,79 @@
+#!/usr/bin/env bash
+# Nagrywanie — preferuje mikrofon Soundcore (HFP), inaczej wskazane / domyślne źródło.
+# Użycie:
+#   bt-record                 # 30s z bluez mic (auto HFP)
+#   bt-record 60              # 60s
+#   bt-record 30 bluez        # źródło z "bluez" w nazwie
+#   bt-record 30 alsa out.wav
+set -euo pipefail
+
+export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+DURATION="${1:-30}"
+SOURCE_HINT="${2:-bluez}"
+OUT_DIR="${HOME}/Recordings"
+mkdir -p "$OUT_DIR"
+
+if [[ "${3:-}" != "" ]]; then
+  OUTFILE="$3"
+elif [[ "${SOURCE_HINT}" == *.wav || "${SOURCE_HINT}" == *.mp3 || "${SOURCE_HINT}" == *.ogg ]]; then
+  OUTFILE="$SOURCE_HINT"
+  SOURCE_HINT="bluez"
+else
+  OUTFILE="${OUT_DIR}/rec-$(date +%Y%m%d-%H%M%S).wav"
+fi
+
+# A2DP nie ma mikrofonu — przełącz kartę BT na HFP/mSBC
+switch_bt_to_hfp() {
+  local card
+  card="$(pactl list short cards 2>/dev/null | awk '/bluez_card/{print $2; exit}')"
+  [[ -z "$card" ]] && return 1
+  for prof in headset-head-unit-msbc headset-head-unit-cvsd headset-head-unit; do
+    if pactl set-card-profile "$card" "$prof" 2>/dev/null; then
+      sleep 1
+      if pactl list short sources 2>/dev/null | grep -q bluez_input; then
+        echo "Profil BT: $prof"
+        return 0
+      fi
+    fi
+  done
+  return 1
+}
+
+if [[ "$SOURCE_HINT" == "bluez" || "$SOURCE_HINT" == "mic" || "$SOURCE_HINT" == "soundcore" ]]; then
+  switch_bt_to_hfp || true
+fi
+
+SOURCE=""
+if [[ -n "$SOURCE_HINT" ]]; then
+  SOURCE="$(pactl list short sources | awk -v h="$SOURCE_HINT" 'tolower($0) ~ tolower(h) && $2 !~ /\.monitor$/ {print $2; exit}')"
+fi
+if [[ -z "$SOURCE" ]]; then
+  SOURCE="$(pactl list short sources | awk '/bluez_input/{print $2; exit}')"
+fi
+if [[ -z "$SOURCE" ]]; then
+  echo "Brak źródła mikrofonu BT (bluez_input)."
+  echo "Dostępne:"
+  pactl list short sources
+  exit 1
+fi
+
+pactl set-default-source "$SOURCE" 2>/dev/null || true
+pactl set-source-mute "$SOURCE" 0 2>/dev/null || true
+pactl set-source-volume "$SOURCE" 100% 2>/dev/null || true
+
+echo "Nagrywam ${DURATION}s ze źródła: $SOURCE"
+echo "Plik: $OUTFILE"
+echo "(mów teraz)"
+ffmpeg -y -hide_banner -loglevel error \
+  -f pulse -i "$SOURCE" \
+  -t "$DURATION" \
+  -ac 1 -ar 16000 \
+  "$OUTFILE"
+echo "Gotowe: $OUTFILE"
+ls -lh "$OUTFILE"
+
+# przywróć A2DP do słuchania (opcjonalnie)
+card="$(pactl list short cards 2>/dev/null | awk '/bluez_card/{print $2; exit}')"
+if [[ -n "$card" ]]; then
+  pactl set-card-profile "$card" a2dp-sink 2>/dev/null || true
+fi

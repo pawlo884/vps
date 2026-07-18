@@ -1,0 +1,23 @@
+---
+bluetooth_audio_install: false
+
+bluetooth_audio_packages:
+  - bluez
+  - bluez-tools
+  - pipewire
+  - pipewire-pulse
+  - pipewire-audio
+  - wireplumber
+  - libspa-0.2-bluetooth
+  - alsa-utils
+  - ffmpeg
+  - pulseaudio-utils
+
+# Użytkownik, dla którego włączamy PipeWire (systemd --user) + linger
+bluetooth_audio_user: "{{ vps_user | default('pawel') }}"
+
+# Katalog ze skryptami pomocniczymi
+bluetooth_audio_bin_dir: "/home/{{ bluetooth_audio_user }}/bin"
+
+# Auto-włącz adapter BT po starcie
+bluetooth_audio_auto_enable: true

@@ -1,0 +1,15 @@
+[Unit]
+Description=Sync Soundcore VAD recordings to MinIO
+After=default.target network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/home/pawel/bin/bt-minio-sync
+Restart=always
+RestartSec=10
+Environment=HOME=/home/pawel
+Environment=XDG_RUNTIME_DIR=/run/user/1000
+
+[Install]
+WantedBy=default.target

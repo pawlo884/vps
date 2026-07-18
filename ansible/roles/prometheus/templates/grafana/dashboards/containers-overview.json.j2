@@ -5,15 +5,18 @@
   "schemaVersion": 39,
   "version": 1,
   "refresh": "10s",
+  "uid": "containers-overview-basic",
   "panels": [
     {
       "type": "timeseries",
       "title": "Container CPU (top)",
       "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
           "expr": "topk(10, rate(container_cpu_usage_seconds_total{name!=\"\"}[5m]))",
-          "legendFormat": "{{name}}"
+          "legendFormat": "{{name}}",
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
         }
       ]
     },
@@ -21,10 +24,12 @@
       "type": "timeseries",
       "title": "Container Memory (RSS)",
       "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
           "expr": "topk(10, container_memory_rss{name!=\"\"})",
-          "legendFormat": "{{name}}"
+          "legendFormat": "{{name}}",
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
         }
       ]
     },
@@ -32,13 +37,12 @@
       "type": "timeseries",
       "title": "Container Net I/O (bytes/s)",
       "gridPos": { "x": 0, "y": 8, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
-        { "expr": "sum by (name) (irate(container_network_receive_bytes_total[5m]))", "legendFormat": "{{name}} RX" },
-        { "expr": "sum by (name) (irate(container_network_transmit_bytes_total[5m]))", "legendFormat": "{{name}} TX" }
+        { "expr": "sum by (name) (irate(container_network_receive_bytes_total[5m]))", "legendFormat": "{{name}} RX", "datasource": { "type": "prometheus", "uid": "prometheus" } },
+        { "expr": "sum by (name) (irate(container_network_transmit_bytes_total[5m]))", "legendFormat": "{{name}} TX", "datasource": { "type": "prometheus", "uid": "prometheus" } }
       ]
     }
   ]
 }
 {% endraw %}
-
-

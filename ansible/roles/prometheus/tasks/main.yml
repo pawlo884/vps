@@ -1,23 +1,60 @@
 ---
-- name: Ensure prom stack directory exists
+- name: Resolve postgres exporter passwords
+  set_fact:
+    _prom_pg_passwords: "{{ _prom_pg_passwords | default({}) | combine({ item.name: _resolved }) }}"
+  vars:
+    _from_item: "{{ item.db_password | default('') }}"
+    _from_var: "{{ lookup('vars', item.password_from, default='') if item.password_from is defined else '' }}"
+    _from_secrets: "{{ (postgres_instances_secrets | default([]) | selectattr('name', 'equalto', item.name) | map(attribute='db_password') | list | first) | default('') }}"
+    _resolved: "{{ _from_item if (_from_item | length > 0) else (_from_var if (_from_var | length > 0) else _from_secrets) }}"
+  loop: "{{ prometheus_postgres_exporters | default([]) }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when: item.enabled | default(true)
+  no_log: true
+  tags: [prometheus]
+
+- name: Collect external docker networks for enabled exporters
+  set_fact:
+    _prom_external_networks: >-
+      {{
+        prometheus_postgres_exporters
+        | default([])
+        | selectattr('enabled', 'truthy')
+        | map(attribute='networks')
+        | list
+        | flatten
+        | unique
+        | difference([prom_docker_network, prom_npm_network])
+        | list
+      }}
+  tags: [prometheus]
+
+- name: Ensure observability stack directory exists
   file:
     path: "{{ prom_stack_dir }}"
     state: directory
-    mode: '0755'
+    owner: "{{ vps_user | default('pawel') }}"
+    group: "{{ vps_user | default('pawel') }}"
+    mode: "0755"
   tags: [prometheus]
 
 - name: Create prometheus config directory
   file:
     path: "{{ prom_stack_dir }}/prometheus"
     state: directory
-    mode: '0755'
+    owner: "{{ vps_user | default('pawel') }}"
+    group: "{{ vps_user | default('pawel') }}"
+    mode: "0755"
   tags: [prometheus]
 
 - name: Create grafana provisioning directories
   file:
     path: "{{ item }}"
     state: directory
-    mode: '0755'
+    owner: "{{ vps_user | default('pawel') }}"
+    group: "{{ vps_user | default('pawel') }}"
+    mode: "0755"
   loop:
     - "{{ prom_stack_dir }}/grafana/provisioning/datasources"
     - "{{ prom_stack_dir }}/grafana/provisioning/dashboards"
@@ -28,39 +65,47 @@
   template:
     src: prometheus.yml.j2
     dest: "{{ prom_stack_dir }}/prometheus/prometheus.yml"
-    mode: '0644'
+    owner: "{{ vps_user | default('pawel') }}"
+    group: "{{ vps_user | default('pawel') }}"
+    mode: "0644"
   tags: [prometheus]
 
 - name: Deploy Grafana datasource provisioning
   template:
     src: grafana/provisioning/datasources/datasource.yml.j2
     dest: "{{ prom_stack_dir }}/grafana/provisioning/datasources/datasource.yml"
-    mode: '0644'
+    owner: "{{ vps_user | default('pawel') }}"
+    group: "{{ vps_user | default('pawel') }}"
+    mode: "0644"
   tags: [prometheus]
 
 - name: Deploy Grafana dashboards provisioning
   template:
     src: grafana/provisioning/dashboards/dashboards.yml.j2
     dest: "{{ prom_stack_dir }}/grafana/provisioning/dashboards/dashboards.yml"
-    mode: '0644'
+    owner: "{{ vps_user | default('pawel') }}"
+    group: "{{ vps_user | default('pawel') }}"
+    mode: "0644"
   tags: [prometheus]
 
 - name: Deploy basic Grafana dashboards
   template:
     src: "{{ item.src }}"
     dest: "{{ prom_stack_dir }}/grafana/dashboards/{{ item.dest }}"
-    mode: '0644'
+    owner: "{{ vps_user | default('pawel') }}"
+    group: "{{ vps_user | default('pawel') }}"
+    mode: "0644"
   loop:
-    - { src: 'grafana/dashboards/host-overview.json.j2', dest: 'host-overview.json' }
-    - { src: 'grafana/dashboards/containers-overview.json.j2', dest: 'containers-overview.json' }
+    - { src: "grafana/dashboards/host-overview.json.j2", dest: "host-overview.json" }
+    - { src: "grafana/dashboards/containers-overview.json.j2", dest: "containers-overview.json" }
   tags: [prometheus]
 
 - name: Download community dashboards from grafana.com (non-blocking)
   get_url:
     url: "{{ item.url }}"
-    dest: "{{ prom_stack_dir }}/grafana/dashboards/{{ item.dest }}"
-    mode: '0644'
-    force: yes
+    dest: "/tmp/{{ item.dest }}.wrap"
+    mode: "0644"
+    force: true
   loop:
     - { url: "https://grafana.com/api/dashboards/1860/revisions/latest/download", dest: "node-exporter-full.json" }
     - { url: "https://grafana.com/api/dashboards/179/revisions/latest/download", dest: "docker-container-host.json" }
@@ -69,33 +114,139 @@
   failed_when: false
   tags: [prometheus]
 
+- name: Check downloaded dashboard wrappers
+  stat:
+    path: "/tmp/{{ item.dest }}.wrap"
+  loop:
+    - { dest: "node-exporter-full.json" }
+    - { dest: "docker-container-host.json" }
+    - { dest: "postgresql-database.json" }
+  register: grafana_dashboard_wraps
+  tags: [prometheus]
+
+- name: Unwrap community dashboards and set Prometheus datasource
+  shell: |
+    SRC="{{ item.stat.path }}"
+    DST="{{ prom_stack_dir }}/grafana/dashboards/{{ item.item.dest }}"
+    python3 -c "
+    import json, os
+    src, dst = os.environ['SRC'], os.environ['DST']
+    with open(src) as f:
+        data = json.load(f)
+    dash = data.get('dashboard', data)
+    dash['id'] = None
+    def fix(obj):
+        if not isinstance(obj, dict):
+            return
+        if isinstance(obj.get('datasource'), dict):
+            obj['datasource'] = {'type': 'prometheus', 'uid': 'prometheus'}
+        for t in obj.get('targets', []):
+            if isinstance(t, dict) and isinstance(t.get('datasource'), dict):
+                t['datasource'] = {'type': 'prometheus', 'uid': 'prometheus'}
+        for nested in obj.get('panels', []):
+            fix(nested)
+    for panel in dash.get('panels', []):
+        fix(panel)
+    for var in dash.get('templating', {}).get('list', []):
+        if var.get('type') == 'datasource' or str(var.get('query', '')).lower() == 'prometheus':
+            var['current'] = {'text': 'Prometheus', 'value': 'prometheus'}
+            var['query'] = 'prometheus'
+    with open(dst, 'w') as f:
+        json.dump(dash, f)
+    "
+  environment:
+    SRC: "{{ item.stat.path }}"
+    DST: "{{ prom_stack_dir }}/grafana/dashboards/{{ item.item.dest }}"
+  loop: "{{ grafana_dashboard_wraps.results | default([]) }}"
+  when: item.stat.exists | default(false)
+  failed_when: false
+  tags: [prometheus]
+
+- name: Fix ownership of unwrapped dashboards
+  file:
+    path: "{{ prom_stack_dir }}/grafana/dashboards/{{ item.item.dest }}"
+    owner: "{{ vps_user | default('pawel') }}"
+    group: "{{ vps_user | default('pawel') }}"
+    mode: "0644"
+  loop: "{{ grafana_dashboard_wraps.results | default([]) }}"
+  when: item.stat.exists | default(false)
+  failed_when: false
+  tags: [prometheus]
+
 - name: Warn if any dashboard download failed
   debug:
-    msg: "Nie udało się pobrać dashboardu {{ item.item.dest }} z {{ item.item.url }} (status: {{ item.status_code | default('n/a') }}, msg: {{ item.msg | default('brak szczegółów') }})"
+    msg: "Nie udało się pobrać dashboardu {{ item.item.dest }} (status: {{ item.status_code | default('n/a') }})"
   loop: "{{ grafana_dashboards_download.results | default([]) }}"
-  when: item.failed | default(false)
+  when: item.failed | default(false) or (item.status_code is defined and item.status_code != 200)
   tags: [prometheus]
 
 - name: Deploy docker-compose.yml for observability
   template:
     src: docker-compose.yml.j2
     dest: "{{ prom_stack_dir }}/docker-compose.yml"
-    mode: '0644'
+    owner: "{{ vps_user | default('pawel') }}"
+    group: "{{ vps_user | default('pawel') }}"
+    mode: "0644"
+  no_log: true
   tags: [prometheus]
 
-- name: Ensure Docker network exists
-  command: docker network create {{ prom_docker_network }}
-  register: create_net
+- name: Ensure Docker networks exist
+  community.docker.docker_network:
+    name: "{{ item }}"
+    state: present
+  loop: "{{ [prom_docker_network, prom_npm_network] + (_prom_external_networks | default([])) }}"
+  tags: [prometheus]
+
+- name: Ensure named volumes exist (preserve history)
+  community.docker.docker_volume:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - observability_prom-data
+    - observability_grafana-data
+  tags: [prometheus]
+
+- name: Check legacy root observability stack
+  stat:
+    path: /root/stacks/observability/docker-compose.yml
+  register: legacy_root_obs
+  tags: [prometheus]
+
+- name: Stop legacy root observability stack if present
+  community.docker.docker_compose_v2:
+    project_src: /root/stacks/observability
+    project_name: observability
+    state: absent
+    remove_volumes: false
+  when:
+    - legacy_root_obs.stat.exists | default(false)
+    - prom_stack_dir != "/root/stacks/observability"
   failed_when: false
-  changed_when: "'already exists' not in create_net.stderr"
   tags: [prometheus]
 
 - name: Bring up observability stack
   community.docker.docker_compose_v2:
     project_src: "{{ prom_stack_dir }}"
+    project_name: observability
     state: present
     recreate: auto
-    remove_orphans: yes
+    remove_orphans: true
   tags: [prometheus]
 
+- name: Wait for Grafana to be ready
+  uri:
+    url: "http://127.0.0.1:{{ grafana_port }}/api/health"
+    method: GET
+  register: grafana_health
+  until: grafana_health.status == 200
+  retries: 30
+  delay: 2
+  tags: [prometheus]
 
+- name: Reset Grafana admin password when requested
+  community.docker.docker_container_exec:
+    container: grafana
+    command: "grafana cli admin reset-admin-password {{ grafana_admin_password }}"
+  when: grafana_reset_admin_password | default(false)
+  no_log: true
+  tags: [prometheus]

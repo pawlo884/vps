@@ -1,0 +1,153 @@
+#!/usr/bin/env bash
+# Healthcheck nagrywania Soundcore VAD.
+# Exit 0 = OK, 1 = soft warn, 2 = hard fail (opcjonalny restart).
+set -u
+
+export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+export DBUS_SESSION_BUS_ADDRESS="${DBUS_SESSION_BUS_ADDRESS:-unix:path=${XDG_RUNTIME_DIR}/bus}"
+
+OUT_DIR="${HOME}/Recordings/continuous"
+LOG="${OUT_DIR}/healthcheck.log"
+STATUS_FILE="${OUT_DIR}/health.status"
+MAC_PATH="${BT_DEVICE_PATH:-/org/bluez/hci0/dev_18_9C_2C_20_D5_B8}"
+SERVICE="${BT_RECORD_SERVICE:-bt-record-continuous.service}"
+# Po ilu minutach bez wzrostu pliku uznać ostrzeżenie (VAD może milczeć długo)
+STALE_WARN_MIN="${STALE_WARN_MIN:-180}"
+RESTART_ON_FAIL="${RESTART_ON_FAIL:-1}"
+
+mkdir -p "$OUT_DIR"
+ts() { date -Is; }
+log() { echo "[$(ts)] $*" | tee -a "$LOG"; }
+
+ok=0
+warn=0
+fail=0
+msgs=()
+
+add_ok()   { msgs+=("OK: $*"); }
+add_warn() { warn=1; msgs+=("WARN: $*"); }
+add_fail() { fail=1; msgs+=("FAIL: $*"); }
+
+# 1) service
+if systemctl --user is-active --quiet "$SERVICE"; then
+  add_ok "service $SERVICE active"
+else
+  add_fail "service $SERVICE not active"
+fi
+
+# 2) ffmpeg process
+ff_pid="$(pgrep -n -f 'ffmpeg.*bluez_input' || true)"
+if [[ -n "$ff_pid" ]]; then
+  add_ok "ffmpeg pid=$ff_pid"
+else
+  add_fail "brak procesu ffmpeg bluez_input"
+fi
+
+# 3) BT connected + battery
+bt_info="$(python3 - <<PY
+import dbus
+try:
+    bus=dbus.SystemBus()
+    path='${MAC_PATH}'
+    d=dbus.Interface(bus.get_object('org.bluez', path),'org.freedesktop.DBus.Properties')
+    conn=bool(d.Get('org.bluez.Device1','Connected'))
+    pct='na'
+    try:
+        pct=int(d.Get('org.bluez.Battery1','Percentage'))
+    except Exception:
+        try:
+            om=dbus.Interface(bus.get_object('org.bluez','/'),'org.freedesktop.DBus.ObjectManager')
+            b=om.GetManagedObjects().get(dbus.ObjectPath(path),{}).get('org.bluez.Battery1')
+            if b and 'Percentage' in b:
+                pct=int(b['Percentage'])
+        except Exception:
+            pass
+    print(f"{'1' if conn else '0'} {pct}")
+except Exception:
+    print('err na')
+PY
+)"
+bt_conn="${bt_info%% *}"
+bt_batt="${bt_info##* }"
+if [[ "$bt_conn" == "1" ]]; then
+  add_ok "BT Connected"
+elif [[ "$bt_conn" == "0" ]]; then
+  add_fail "BT rozłączony"
+else
+  add_fail "BT status niedostępny"
+fi
+
+BATTERY_WARN="${BATTERY_WARN:-25}"
+BATTERY_CRIT="${BATTERY_CRIT:-10}"
+if [[ "$bt_batt" =~ ^[0-9]+$ ]]; then
+  add_ok "bateria ${bt_batt}%"
+  if [[ "$bt_batt" -le "$BATTERY_CRIT" ]]; then
+    add_fail "bateria krytycznie niska ${bt_batt}% (próg ${BATTERY_CRIT}%)"
+  elif [[ "$bt_batt" -le "$BATTERY_WARN" ]]; then
+    add_warn "bateria niska ${bt_batt}% (próg ${BATTERY_WARN}%)"
+  fi
+  echo "$bt_batt" > "${OUT_DIR}/battery.pct"
+else
+  add_warn "brak odczytu baterii"
+fi
+
+# 4) bluez_input source
+src="$(pactl list short sources 2>/dev/null | awk '/bluez_input/{print $2; exit}')"
+src_state="$(pactl list short sources 2>/dev/null | awk '/bluez_input/{print $5; exit}')"
+if [[ -n "$src" ]]; then
+  add_ok "source $src state=${src_state:-?}"
+else
+  add_fail "brak bluez_input"
+fi
+
+# 5) najnowszy plik + otwarty przez ffmpeg + świeżość
+latest="$(ls -t "$OUT_DIR"/vad-*.wav 2>/dev/null | head -1 || true)"
+if [[ -z "$latest" ]]; then
+  add_warn "brak plików vad-*.wav"
+else
+  size="$(stat -c%s "$latest" 2>/dev/null || echo 0)"
+  mtime="$(stat -c%Y "$latest" 2>/dev/null || echo 0)"
+  age_min=$(( ( $(date +%s) - mtime ) / 60 ))
+  add_ok "plik $(basename "$latest") size=${size} age_min=${age_min}"
+
+  if [[ -n "$ff_pid" ]] && ls -l "/proc/${ff_pid}/fd" 2>/dev/null | grep -q '\.wav'; then
+    add_ok "ffmpeg trzyma otwarty plik .wav"
+  elif [[ -n "$ff_pid" ]]; then
+    # fallback: lsof
+    if command -v lsof >/dev/null && lsof -p "$ff_pid" 2>/dev/null | grep -q '\.wav'; then
+      add_ok "ffmpeg trzyma otwarty plik .wav (lsof)"
+    else
+      add_warn "nie potwierdzono otwartego .wav przez ffmpeg"
+    fi
+  fi
+
+  if [[ "$age_min" -ge "$STALE_WARN_MIN" ]]; then
+    add_warn "brak zapisu od ${age_min} min (VAD cisza OK; próg ${STALE_WARN_MIN}m)"
+  fi
+fi
+
+# zapis statusu
+{
+  echo "time=$(ts)"
+  echo "ok=$ok warn=$warn fail=$fail"
+  printf '%s\n' "${msgs[@]}"
+} > "$STATUS_FILE"
+
+for m in "${msgs[@]}"; do log "$m"; done
+
+if [[ "$fail" -eq 1 ]]; then
+  log "HEALTH FAIL"
+  if [[ "$RESTART_ON_FAIL" == "1" ]]; then
+    log "restart $SERVICE"
+    systemctl --user restart "$SERVICE" || true
+  fi
+  exit 2
+fi
+
+if [[ "$warn" -eq 1 ]]; then
+  log "HEALTH WARN"
+  exit 1
+fi
+
+log "HEALTH OK"
+exit 0

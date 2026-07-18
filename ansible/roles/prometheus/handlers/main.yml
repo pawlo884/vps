@@ -1,0 +1,7 @@
+---
+# handlers for prometheus role (optional future use)
+- name: Reload prometheus
+  uri:
+    url: "http://127.0.0.1:{{ prometheus_port }}/-/reload"
+    method: POST
+  failed_when: false

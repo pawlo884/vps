@@ -6,6 +6,7 @@
     - { role: common, tags: [common] }
     - { role: fail2ban, tags: [fail2ban, security] }
     - { role: wifi, when: wifi_configure | default(false), tags: [wifi, network] }
+    - { role: bluetooth-audio, when: bluetooth_audio_install | default(false), tags: [bluetooth, audio] }
     - { role: web, tags: [web] }
     - { role: db, tags: [db] }
     - { role: storage, when: storage_enable | default(false), tags: [storage] }
@@ -15,6 +16,7 @@
     - { role: nginx-proxy-manager, tags: [nginx_proxy_manager, proxy] }
     - { role: backups, tags: [backups] }
     - { role: monitoring, tags: [monitoring] }
+    - { role: prometheus, tags: [prometheus, observability] }
     - { role: portainer, tags: [portainer, docker] }
     - { role: app, tags: [app, deploy] }
     - { role: landing, tags: [landing, deploy] }

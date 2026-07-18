@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# Szybki status baterii / połączenia Soundcore
+set -euo pipefail
+python3 - <<'PY'
+import dbus
+bus=dbus.SystemBus()
+path='/org/bluez/hci0/dev_18_9C_2C_20_D5_B8'
+d=dbus.Interface(bus.get_object('org.bluez', path),'org.freedesktop.DBus.Properties')
+conn=bool(d.Get('org.bluez.Device1','Connected'))
+name=str(d.Get('org.bluez.Device1','Name'))
+try:
+    pct=int(d.Get('org.bluez.Battery1','Percentage'))
+except Exception:
+    pct=None
+print(f"{name}")
+print(f"Connected: {conn}")
+print(f"Battery:   {pct if pct is not None else 'n/a'}%")
+PY

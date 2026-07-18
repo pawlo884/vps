@@ -34,6 +34,9 @@ docker_cleanup_schedule: "0 3 * * 0" # Co niedzielę o 3:00
 # WiFi configuration
 wifi_configure: false # Ustaw na true jeśli chcesz skonfigurować WiFi
 
+# Bluetooth + PipeWire — tylko na fizycznym hoście z adapterem BT (prod)
+bluetooth_audio_install: false
+
 # PostgreSQL test instance
 postgres_test_enabled: true
 postgres_test_password: "testpass123" # Zmień w secrets.yml!

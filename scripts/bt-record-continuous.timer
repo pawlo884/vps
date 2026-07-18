@@ -1,0 +1,11 @@
+[Unit]
+Description=Start Soundcore continuous recording at 06:00 Europe/Warsaw
+
+[Timer]
+# 06:00 czasu polskiego (CEST = UTC+2) — serwer ma zegar UTC
+OnCalendar=2026-07-17 04:00:00 UTC
+Persistent=true
+Unit=bt-record-continuous.service
+
+[Install]
+WantedBy=timers.target

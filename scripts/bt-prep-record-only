@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+# Przygotowanie: wyjście=0, HFP mic, bez nagrywania (nagrywanie odpali timer o 6:00).
+set -euo pipefail
+export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+CARD=bluez_card.18_9C_2C_20_D5_B8
+MAC_PATH=/org/bluez/hci0/dev_18_9C_2C_20_D5_B8
+
+python3 - <<'PY'
+import time, dbus
+from dbus.mainloop.glib import DBusGMainLoop
+import gi
+gi.require_version('GLib','2.0')
+from gi.repository import GLib
+DBusGMainLoop(set_as_default=True)
+bus=dbus.SystemBus()
+path='/org/bluez/hci0/dev_18_9C_2C_20_D5_B8'
+di=dbus.Interface(bus.get_object('org.bluez', path),'org.bluez.Device1')
+dp=dbus.Interface(bus.get_object('org.bluez', path),'org.freedesktop.DBus.Properties')
+dp.Set('org.bluez.Device1','Trusted', dbus.Boolean(True))
+if not bool(dp.Get('org.bluez.Device1','Connected')):
+    loop=GLib.MainLoop()
+    di.Connect(reply_handler=lambda *a: loop.quit(), error_handler=lambda e: loop.quit())
+    GLib.timeout_add_seconds(40, loop.quit); loop.run(); time.sleep(2)
+print('Connected', bool(dp.Get('org.bluez.Device1','Connected')))
+PY
+
+for prof in headset-head-unit-msbc headset-head-unit-cvsd headset-head-unit; do
+  pactl set-card-profile "$CARD" "$prof" 2>/dev/null || true
+  sleep 1
+  pactl list short sources | grep -q bluez_input && break
+done
+
+while read -r sink; do
+  pactl set-sink-mute "$sink" 1 || true
+  pactl set-sink-volume "$sink" 0 || true
+done < <(pactl list short sinks | awk '{print $2}')
+
+echo "Wyjscie: wyciszone (0)"
+pactl list short sinks
+echo "Mic:"
+pactl list short sources | grep bluez || true

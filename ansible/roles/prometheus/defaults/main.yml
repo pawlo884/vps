@@ -1,25 +1,57 @@
 ---
-# Ścieżki i ustawienia stacka Prometheus + Grafana
-prom_stack_dir: "{{ ansible_env.HOME }}/stacks/observability"
+# Stack Prometheus + Grafana + eksporterów
+prom_stack_dir: "/home/{{ vps_user | default('pawel') }}/stacks/observability"
 prom_docker_network: observability
+prom_npm_network: nginx_proxy_manager_network
 
 # Obrazy
-prom_image: prom/prometheus:latest
-grafana_image: grafana/grafana:latest
-node_exporter_image: prom/node-exporter:latest
-cadvisor_image: gcr.io/cadvisor/cadvisor:latest
-blackbox_image: prom/blackbox-exporter:latest
-postgres_exporter_image: prometheuscommunity/postgres-exporter:latest
+prom_image: prom/prometheus:v3.2.1
+grafana_image: grafana/grafana:11.5.2
+node_exporter_image: prom/node-exporter:v1.9.0
+cadvisor_image: gcr.io/cadvisor/cadvisor:v0.49.2
+blackbox_image: prom/blackbox-exporter:v0.25.0
+postgres_exporter_image: prometheuscommunity/postgres-exporter:v0.16.0
 
-# Porty publiczne
+# Porty tylko na localhost (dostęp przez NPM / SSH tunnel)
 prometheus_port: 9090
 grafana_port: 3000
 node_exporter_port: 9103
 cadvisor_port: 9102
 blackbox_port: 9115
 
-# Grafana admin (można nadpisać w secrets.yml)
+# Grafana admin (nadpisz w secrets.yml)
 grafana_admin_user: admin
 grafana_admin_password: admin
+# Ustaw true przy deployu, jeśli zapomniane hasło (reset w kontenerze)
+grafana_reset_admin_password: false
 
+# Blackbox HTTP probes (puste = wyłączone scrape'e blackbox)
+# Przykład: ["https://sowa.ch", "https://npm.sowa.ch"]
+blackbox_http_targets: []
 
+# Eksporterzy PostgreSQL — każdy musi być w tej samej sieci Docker co kontener PG
+prometheus_postgres_exporters:
+  - name: shared
+    # wyłączone domyślnie — postgres_shared jest obecnie w crash-loop (PG 18 data dir)
+    enabled: false
+    host: postgres_shared
+    port: 5432
+    db_user: shareduser
+    db_name: shared
+    # hasło: postgres_instances_secrets[name=shared].db_password lub db_password poniżej
+    db_password: ""
+    host_port: 9187
+    networks:
+      - dbnet
+  - name: nc
+    enabled: true
+    host: nc-postgres-1
+    port: 5432
+    db_user: pawel
+    db_name: postgres
+    # domyślnie app_db_password z secrets
+    db_password: ""
+    password_from: app_db_password
+    host_port: 9188
+    networks:
+      - nc_dbnet

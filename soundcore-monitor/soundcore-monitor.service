@@ -1,0 +1,19 @@
+[Unit]
+Description=Soundcore Streamlit monitor (battery + recordings)
+After=default.target network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/pawel/stacks/soundcore-monitor
+Environment=HOME=/home/pawel
+Environment=XDG_RUNTIME_DIR=/run/user/1000
+Environment=SOUNDCORE_REC_DIR=/home/pawel/Recordings/continuous
+Environment=SOUNDCORE_REFRESH_SEC=10
+EnvironmentFile=-/home/pawel/stacks/soundcore-monitor/.env
+ExecStart=/home/pawel/stacks/soundcore-monitor/.venv/bin/streamlit run app.py --server.port=8599 --server.address=0.0.0.0 --browser.gatherUsageStats=false --server.headless=true
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

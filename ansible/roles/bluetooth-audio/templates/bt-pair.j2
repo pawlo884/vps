@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+# Parowanie / łączenie słuchawek Bluetooth na headless VPS.
+# Użycie:
+#   bt-pair                  # skan 20s + lista urządzeń
+#   bt-pair AA:BB:CC:DD:EE:FF
+set -euo pipefail
+
+MAC="${1:-}"
+BIN_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+echo "==> Włączam adapter..."
+bluetoothctl power on >/dev/null
+bluetoothctl agent on >/dev/null || true
+bluetoothctl default-agent >/dev/null || true
+bluetoothctl discoverable on >/dev/null || true
+bluetoothctl pairable on >/dev/null || true
+
+if [[ -z "$MAC" ]]; then
+  echo "==> Skanowanie 20s — włącz tryb parowania na słuchawkach..."
+  bluetoothctl --timeout 20 scan on || true
+  echo
+  echo "Znalezione urządzenia:"
+  bluetoothctl devices
+  echo
+  echo "Połącz konkretne urządzenie:"
+  echo "  ${BIN_DIR}/bt-pair AA:BB:CC:DD:EE:FF"
+  exit 0
+fi
+
+echo "==> Paruję $MAC ..."
+bluetoothctl --timeout 15 scan on || true
+bluetoothctl pair "$MAC" || true
+bluetoothctl trust "$MAC"
+bluetoothctl connect "$MAC"
+
+echo
+echo "==> Status:"
+bluetoothctl info "$MAC" | sed -n '1,20p'
+echo
+echo "Sprawdź audio: ${BIN_DIR}/bt-status"

@@ -5,14 +5,17 @@
   "schemaVersion": 39,
   "version": 1,
   "refresh": "10s",
+  "uid": "host-overview-basic",
   "panels": [
     {
       "type": "timeseries",
       "title": "CPU usage %",
       "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
-          "expr": "100 - (avg by(instance) (irate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)"
+          "expr": "100 - (avg by(instance) (irate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)",
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
         }
       ]
     },
@@ -20,9 +23,11 @@
       "type": "timeseries",
       "title": "Memory used %",
       "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
-          "expr": "(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100"
+          "expr": "(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100",
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
         }
       ]
     },
@@ -30,25 +35,26 @@
       "type": "timeseries",
       "title": "Load average",
       "gridPos": { "x": 0, "y": 8, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
-        { "expr": "node_load1" },
-        { "expr": "node_load5" },
-        { "expr": "node_load15" }
+        { "expr": "node_load1", "datasource": { "type": "prometheus", "uid": "prometheus" } },
+        { "expr": "node_load5", "datasource": { "type": "prometheus", "uid": "prometheus" } },
+        { "expr": "node_load15", "datasource": { "type": "prometheus", "uid": "prometheus" } }
       ]
     },
     {
       "type": "timeseries",
       "title": "Disk usage %",
       "gridPos": { "x": 12, "y": 8, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
           "expr": "(node_filesystem_size_bytes{fstype!~\"tmpfs|overlay\"} - node_filesystem_free_bytes{fstype!~\"tmpfs|overlay\"}) / node_filesystem_size_bytes{fstype!~\"tmpfs|overlay\"} * 100",
-          "legendFormat": "{{mountpoint}}"
+          "legendFormat": "{{mountpoint}}",
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
         }
       ]
     }
   ]
 }
 {% endraw %}
-
-

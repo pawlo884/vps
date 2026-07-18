@@ -1,0 +1,123 @@
+#!/usr/bin/env bash
+# Nagrywanie z mikrofonu Soundcore (HFP) — tylko gdy jest dźwięk (VAD / silenceremove).
+# Cisza jest pomijana; wyjście audio wyciszone.
+# Start: systemd --user bt-record-continuous.service
+set -euo pipefail
+
+export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+export DBUS_SESSION_BUS_ADDRESS="${DBUS_SESSION_BUS_ADDRESS:-unix:path=${XDG_RUNTIME_DIR}/bus}"
+
+MAC_PATH="${BT_DEVICE_PATH:-/org/bluez/hci0/dev_18_9C_2C_20_D5_B8}"
+CARD="${BT_CARD:-bluez_card.18_9C_2C_20_D5_B8}"
+OUT_DIR="${HOME}/Recordings/continuous"
+mkdir -p "$OUT_DIR"
+LOG="${OUT_DIR}/recorder.log"
+
+# Próg wykrywania mowy (dB). Ciszej = bardziej czułe (np. -45). Głośniej = mniej czułe (np. -30).
+VAD_DB="${VAD_DB:--38dB}"
+# Po ilu sekundach ciszy uznać koniec wypowiedzi
+VAD_STOP_SEC="${VAD_STOP_SEC:-1.5}"
+# Ile dźwięku na start, żeby zacząć zapisywać
+VAD_START_SEC="${VAD_START_SEC:-0.15}"
+# Długość chunka w sekundach zegarowych (domyślnie 60 min)
+CHUNK_SEC="${CHUNK_SEC:-3600}"
+
+log() { echo "[$(date -Is)] $*" | tee -a "$LOG"; }
+
+ensure_connected() {
+  python3 - <<PY
+import time, dbus
+from dbus.mainloop.glib import DBusGMainLoop
+import gi
+gi.require_version('GLib', '2.0')
+from gi.repository import GLib
+DBusGMainLoop(set_as_default=True)
+bus = dbus.SystemBus()
+path = "${MAC_PATH}"
+di = dbus.Interface(bus.get_object('org.bluez', path), 'org.bluez.Device1')
+dp = dbus.Interface(bus.get_object('org.bluez', path), 'org.freedesktop.DBus.Properties')
+if bool(dp.Get('org.bluez.Device1', 'Connected')):
+    print('already-connected')
+else:
+    loop = GLib.MainLoop()
+    err = [None]
+    di.Connect(reply_handler=lambda *a: loop.quit(),
+               error_handler=lambda e: (err.__setitem__(0, str(e)), loop.quit()))
+    GLib.timeout_add_seconds(45, loop.quit)
+    loop.run()
+    time.sleep(2)
+    print('connected' if bool(dp.Get('org.bluez.Device1', 'Connected')) else f'fail:{err[0]}')
+PY
+}
+
+mute_all_outputs() {
+  local sink
+  while read -r sink; do
+    [[ -z "$sink" ]] && continue
+    pactl set-sink-mute "$sink" 1 2>/dev/null || true
+    pactl set-sink-volume "$sink" 0 2>/dev/null || true
+  done < <(pactl list short sinks | awk '{print $2}')
+}
+
+switch_hfp() {
+  local prof
+  for prof in headset-head-unit-msbc headset-head-unit-cvsd headset-head-unit; do
+    if pactl set-card-profile "$CARD" "$prof" 2>/dev/null; then
+      sleep 2
+      if pactl list short sources 2>/dev/null | grep -q bluez_input; then
+        log "Profil: $prof"
+        return 0
+      fi
+    fi
+  done
+  return 1
+}
+
+log "Start VAD recorder (threshold=${VAD_DB}, stop_silence=${VAD_STOP_SEC}s)"
+ensure_connected | tee -a "$LOG"
+switch_hfp || { log "ERROR: brak HFP/bluez_input"; exit 1; }
+mute_all_outputs
+
+SRC="$(pactl list short sources | awk '/bluez_input/{print $2; exit}')"
+if [[ -z "${SRC:-}" ]]; then
+  log "ERROR: brak źródła bluez_input"
+  exit 1
+fi
+pactl set-default-source "$SRC" || true
+pactl set-source-mute "$SRC" 0 || true
+pactl set-source-volume "$SRC" 100% || true
+mute_all_outputs
+log "Słucham $SRC → zapis tylko przy dźwięku → $OUT_DIR (chunki co ${CHUNK_SEC}s zegarowe)"
+
+# silenceremove: nie zapisuje ciszy
+AF="silenceremove=start_periods=1:start_duration=${VAD_START_SEC}:start_threshold=${VAD_DB}:stop_periods=-1:stop_duration=${VAD_STOP_SEC}:stop_threshold=${VAD_DB}:detection=peak"
+
+# Chunki wg czasu zegarowego (nie „godziny mowy”) — nowy plik co CHUNK_SEC
+while true; do
+  ensure_connected | tee -a "$LOG" >/dev/null || true
+  switch_hfp || { log "WARN: HFP chwilowo niedostępne, retry..."; sleep 15; continue; }
+  SRC="$(pactl list short sources | awk '/bluez_input/{print $2; exit}')"
+  if [[ -z "${SRC:-}" ]]; then
+    log "WARN: brak bluez_input, retry..."
+    sleep 15
+    continue
+  fi
+  mute_all_outputs
+  OUT="${OUT_DIR}/vad-$(date +%Y%m%d-%H%M%S).wav"
+  log "Nowy chunk: $OUT (${CHUNK_SEC}s)"
+  # timeout kończy ffmpeg po godzinie zegarowej → nowy plik
+  timeout --signal=INT "${CHUNK_SEC}" ffmpeg -hide_banner -loglevel warning \
+    -f pulse -i "$SRC" \
+    -ac 1 -ar 16000 \
+    -af "$AF" \
+    "$OUT" || true
+  # usuń puste/prawie puste pliki (same header)
+  if [[ -f "$OUT" ]]; then
+    sz="$(stat -c%s "$OUT" 2>/dev/null || echo 0)"
+    if [[ "$sz" -lt 1024 ]]; then
+      log "Usuwam pusty chunk ($sz B): $OUT"
+      rm -f "$OUT"
+    fi
+  fi
+  sleep 1
+done

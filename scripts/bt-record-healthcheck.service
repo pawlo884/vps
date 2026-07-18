@@ -1,0 +1,11 @@
+[Unit]
+Description=Healthcheck Soundcore VAD recording
+After=default.target
+
+[Service]
+Type=oneshot
+ExecStart=/home/pawel/bin/bt-record-healthcheck
+Environment=HOME=/home/pawel
+Environment=XDG_RUNTIME_DIR=/run/user/1000
+Environment=STALE_WARN_MIN=180
+Environment=RESTART_ON_FAIL=1

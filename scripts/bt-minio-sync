@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+# Okresowy sync nagrań VAD → MinIO (bezpieczniejsze przy plikach w trakcie zapisu).
+set -euo pipefail
+
+ENV_FILE="${HOME}/.config/minio-sync.env"
+# shellcheck disable=SC1090
+source "$ENV_FILE"
+
+MC_BIN="${MC_BIN:-${HOME}/bin/mc}"
+SRC_DIR="${SRC_DIR:-${HOME}/Recordings/continuous}"
+BUCKET="${BUCKET:-soundcore-recordings}"
+ENDPOINT="${MINIO_ENDPOINT:-http://127.0.0.1:9100}"
+ALIAS="${MINIO_ALIAS:-local}"
+INTERVAL="${SYNC_INTERVAL_SEC:-3600}"
+
+mkdir -p "$SRC_DIR"
+export MC_CONFIG_DIR="${HOME}/.mc"
+
+"$MC_BIN" alias set "$ALIAS" "$ENDPOINT" "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD" >/dev/null
+"$MC_BIN" mb --ignore-existing "${ALIAS}/${BUCKET}"
+
+echo "[$(date -Is)] okresowy mirror co ${INTERVAL}s → ${ALIAS}/${BUCKET}"
+while true; do
+  "$MC_BIN" mirror --overwrite \
+    --exclude "recorder.log" \
+    --exclude "test-vad/**" \
+    --exclude "*.log" \
+    "$SRC_DIR/" "${ALIAS}/${BUCKET}/" || true
+  sleep "$INTERVAL"
+done

@@ -3,27 +3,28 @@ global:
   evaluation_interval: 15s
 
 scrape_configs:
-  - job_name: 'prometheus'
+  - job_name: prometheus
     static_configs:
-      - targets: ['prometheus:9090']
+      - targets: ["prometheus:9090"]
 
-  - job_name: 'node_exporter'
+  - job_name: node_exporter
     static_configs:
-      - targets: ['node_exporter:9100']
+      - targets: ["node_exporter:9100"]
 
-  - job_name: 'cadvisor'
+  - job_name: cadvisor
     static_configs:
-      - targets: ['cadvisor:8080']
+      - targets: ["cadvisor:8080"]
 
-  - job_name: 'blackbox_http'
+{% if blackbox_http_targets | default([]) | length > 0 %}
+  - job_name: blackbox_http
     metrics_path: /probe
     params:
       module: [http_2xx]
     static_configs:
       - targets:
-        - http://localhost:80
-        - http://localhost:9100
-        - http://localhost:9101
+{% for target in blackbox_http_targets %}
+          - {{ target }}
+{% endfor %}
     relabel_configs:
       - source_labels: [__address__]
         target_label: __param_target
@@ -31,21 +32,13 @@ scrape_configs:
         target_label: instance
       - target_label: __address__
         replacement: blackbox:9115
+{% endif %}
 
-  - job_name: 'postgres_shared'
+{% for exp in prometheus_postgres_exporters | default([]) if exp.enabled | default(true) %}
+  - job_name: postgres_{{ exp.name }}
     static_configs:
-      - targets:
-        - observability-postgres_exporter_shared-1:9187
-    relabel_configs:
-      - target_label: instance
-        replacement: 'postgres_shared'
-
-  - job_name: 'postgres_nc'
-    static_configs:
-      - targets:
-        - observability-postgres_exporter_nc-1:9187
-    relabel_configs:
-      - target_label: instance
-        replacement: 'postgres_nc'
-
-
+      - targets: ["postgres_exporter_{{ exp.name }}:9187"]
+        labels:
+          instance: "{{ exp.host }}"
+          db: "{{ exp.db_name }}"
+{% endfor %}

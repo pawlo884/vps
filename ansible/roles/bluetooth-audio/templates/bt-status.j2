@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# Status Bluetooth + PipeWire (sinki/źródła).
+set -euo pipefail
+
+export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+
+echo "=== Bluetooth adapter ==="
+bluetoothctl show 2>/dev/null | sed -n '1,12p' || echo "bluetoothctl niedostępny"
+echo
+echo "=== Sparowane urządzenia ==="
+bluetoothctl devices Trusted 2>/dev/null || bluetoothctl devices
+echo
+echo "=== Połączone ==="
+bluetoothctl devices Connected 2>/dev/null || true
+echo
+echo "=== PipeWire / Pulse sinks ==="
+pactl info 2>/dev/null | sed -n '1,15p' || echo "PipeWire niedostępny (zaloguj się ponownie / sprawdź linger)"
+echo
+pactl list short sinks 2>/dev/null || true
+echo
+echo "=== Sources (mikrofon) ==="
+pactl list short sources 2>/dev/null || true

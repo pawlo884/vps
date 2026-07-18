@@ -1,0 +1,116 @@
+---
+- name: Install Bluetooth and audio packages
+  apt:
+    name: "{{ bluetooth_audio_packages }}"
+    state: present
+    update_cache: true
+  when: bluetooth_audio_install | default(false)
+
+- name: Ensure bluetooth service is enabled and started
+  systemd:
+    name: bluetooth
+    enabled: true
+    state: started
+  when: bluetooth_audio_install | default(false)
+
+- name: Enable AutoEnable in BlueZ main.conf
+  lineinfile:
+    path: /etc/bluetooth/main.conf
+    regexp: '^#?AutoEnable='
+    line: 'AutoEnable=true'
+    backup: true
+  when:
+    - bluetooth_audio_install | default(false)
+    - bluetooth_audio_auto_enable | default(true)
+  notify: Restart bluetooth
+
+- name: Ensure audio and bluetooth groups exist
+  group:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - audio
+    - bluetooth
+  when: bluetooth_audio_install | default(false)
+
+- name: Add user to audio and bluetooth groups
+  user:
+    name: "{{ bluetooth_audio_user }}"
+    groups:
+      - audio
+      - bluetooth
+    append: true
+  when: bluetooth_audio_install | default(false)
+
+- name: Enable systemd linger for PipeWire user session
+  command: loginctl enable-linger {{ bluetooth_audio_user }}
+  args:
+    creates: "/var/lib/systemd/linger/{{ bluetooth_audio_user }}"
+  when: bluetooth_audio_install | default(false)
+
+- name: Resolve bluetooth_audio user uid
+  command: id -u {{ bluetooth_audio_user }}
+  register: bluetooth_audio_uid
+  changed_when: false
+  when: bluetooth_audio_install | default(false)
+
+- name: Ensure user bin directory exists
+  file:
+    path: "{{ bluetooth_audio_bin_dir }}"
+    state: directory
+    owner: "{{ bluetooth_audio_user }}"
+    group: "{{ bluetooth_audio_user }}"
+    mode: "0755"
+  when: bluetooth_audio_install | default(false)
+
+- name: Install Bluetooth helper scripts
+  template:
+    src: "{{ item }}.j2"
+    dest: "{{ bluetooth_audio_bin_dir }}/{{ item }}"
+    owner: "{{ bluetooth_audio_user }}"
+    group: "{{ bluetooth_audio_user }}"
+    mode: "0755"
+  loop:
+    - bt-pair
+    - bt-status
+    - bt-record
+  when: bluetooth_audio_install | default(false)
+
+- name: Enable PipeWire user services
+  become: true
+  become_user: "{{ bluetooth_audio_user }}"
+  systemd:
+    name: "{{ item }}"
+    enabled: true
+    state: started
+    scope: user
+  environment:
+    XDG_RUNTIME_DIR: "/run/user/{{ bluetooth_audio_uid.stdout }}"
+    DBUS_SESSION_BUS_ADDRESS: "unix:path=/run/user/{{ bluetooth_audio_uid.stdout }}/bus"
+  loop:
+    - pipewire.socket
+    - pipewire-pulse.socket
+    - wireplumber.service
+  when: bluetooth_audio_install | default(false)
+
+- name: Power on Bluetooth adapter
+  command: bluetoothctl power on
+  register: bt_power
+  changed_when: false
+  failed_when: false
+  when: bluetooth_audio_install | default(false)
+
+- name: Show Bluetooth adapter status
+  command: bluetoothctl show
+  register: bt_show
+  changed_when: false
+  failed_when: false
+  when: bluetooth_audio_install | default(false)
+
+- name: Display Bluetooth setup summary
+  debug:
+    msg: |
+      Bluetooth/audio gotowe.
+      Adapter: {{ 'OK' if bt_show.rc == 0 else 'sprawdź ręcznie' }}
+      Skrypty: {{ bluetooth_audio_bin_dir }}/bt-pair | bt-status | bt-record
+  when: bluetooth_audio_install | default(false)

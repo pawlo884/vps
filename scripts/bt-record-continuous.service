@@ -1,0 +1,14 @@
+[Unit]
+Description=Continuous Soundcore HFP mic recording (output muted)
+After=default.target bluetooth.target pipewire-pulse.service wireplumber.service
+Wants=pipewire-pulse.service wireplumber.service
+
+[Service]
+Type=simple
+ExecStart=/home/pawel/bin/bt-record-continuous
+Restart=on-failure
+RestartSec=15
+Environment=XDG_RUNTIME_DIR=/run/user/1000
+
+[Install]
+WantedBy=default.target
