@@ -13,6 +13,7 @@ services:
       - prom-data:/prometheus
     networks:
       - {{ prom_docker_network }}
+      - {{ prom_npm_network }}
     restart: unless-stopped
 
   grafana:

@@ -10,7 +10,8 @@ grafana_image: grafana/grafana:11.5.2
 node_exporter_image: prom/node-exporter:v1.9.0
 cadvisor_image: gcr.io/cadvisor/cadvisor:v0.49.2
 blackbox_image: prom/blackbox-exporter:v0.25.0
-postgres_exporter_image: prometheuscommunity/postgres-exporter:v0.16.0
+# v0.17+ potrzebne dla PG 17/18 (pg_stat_checkpointer zamiast starych kolumn bgwriter)
+postgres_exporter_image: prometheuscommunity/postgres-exporter:v0.17.1
 
 # Porty tylko na localhost (dostęp przez NPM / SSH tunnel)
 prometheus_port: 9090
