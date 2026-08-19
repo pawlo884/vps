@@ -42,6 +42,9 @@ services:
       start_period: 10s
     ports:
       - "{{ docker_publish_bind | default('127.0.0.1') }}:{{ app_db_expose_port | default('5432') }}:5432"
+{% if docker_k3s_host_bind | default('') %}
+      - "{{ docker_k3s_host_bind }}:{{ app_db_expose_port | default('5432') }}:5432"
+{% endif %}
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - {{ app_dir }}/docker/postgres/initdb.d:/docker-entrypoint-initdb.d:ro

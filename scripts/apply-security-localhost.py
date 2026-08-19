@@ -38,6 +38,20 @@ def main() -> None:
         path.write_text(text.replace(old, new, 1))
         print(f'OK {path}: {old} -> {new}')
 
+    # k3s nc-prod łączy się do Postgresa przez docker0, nie przez 127.0.0.1.
+    nc = Path('/home/pawel/stacks/nc/docker-compose.yml')
+    if nc.exists():
+        text = nc.read_text()
+        extra = '      - "172.17.0.1:5432:5432"\n'
+        needle = '      - "127.0.0.1:5432:5432"\n'
+        if extra in text:
+            print(f'ALREADY {nc}: k3s 172.17.0.1:5432')
+        elif needle in text:
+            nc.write_text(text.replace(needle, needle + extra, 1))
+            print(f'OK {nc}: added k3s 172.17.0.1:5432')
+        else:
+            print(f'MISS {nc}: {needle.strip()}')
+
 
 if __name__ == '__main__':
     main()

@@ -16,6 +16,8 @@ vps_user: pawel
 docker_install: true
 # Publikacja portów Dockera tylko na loopback. Publiczny ruch: 22/80/443 (NPM).
 docker_publish_bind: "127.0.0.1"
+# Mostek docker0: k3s (nc-prod) łączy się do Postgresa przez 172.17.0.1, nie 127.0.0.1.
+docker_k3s_host_bind: "172.17.0.1"
 
 # Firewall UFW — publicznie tylko SSH i NPM (HTTP/HTTPS).
 # Panele (Portainer, pgAdmin, NPM :81, Netdata, MinIO) przez domenę w NPM albo:
