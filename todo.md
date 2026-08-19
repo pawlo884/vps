@@ -9,7 +9,7 @@ Stan na 19.08.2026. Działamy po kolei, bez wielkich refaktorów naraz.
 - NVMe 1,9 TB: `/mnt/data2tb` (Postgres shared, MinIO, uploady)
 - Docker Compose + Ansible + k3s obok siebie
 - Reverse proxy: Nginx Proxy Manager (natywny nginx wyłączony)
-- Aplikacja: Django `nc` (blue-green), Celery, Redis, Next.js landing, n8n
+- Aplikacja: Django `nc` na **k3s** (`nc-prod`, Traefik NodePort 30080). Docker blue-green jest starym stackiem, nie jest używany.
 - Bazy: `nc-postgres-1` (5432), `nc-postgres-test` (5433), `postgres_shared` (pada), Qdrant
 - Monitoring: Netdata systemd (~2,2 GB RAM) + Prometheus/Grafana
 
@@ -72,7 +72,7 @@ Lokalny `pg_dump` jest. Crony są zduplikowane. Rola `backups` jest w `site.yml`
 
 ## 6. Porządek Ansible / IaC
 
-- [ ] Zsynchronizować kod z serwerem: MinIO, k3s (albo usunąć), blue-green, observability są poza `site.yml`
+- [ ] Zsynchronizować kod z serwerem: MinIO, k3s (`nc-prod`), observability są poza `site.yml`; Docker blue-green nie jest używany
 - [ ] Pinować tagi obrazów — bez `:latest` (n8n, Qdrant, MinIO, Portainer, NPM, pgAdmin)
 - [ ] Sekrety w Ansible Vault, nie luźny `secrets.yml`
 - [ ] Instalacja Dockera z repo (Ubuntu/Docker CE), nie `curl | sh`
