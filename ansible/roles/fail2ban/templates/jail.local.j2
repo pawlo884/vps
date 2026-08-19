@@ -16,4 +16,30 @@ backend = systemd
 bantime = {{ fail2ban_bantime_sshd | default('6h') }}
 maxretry = {{ fail2ban_maxretry_sshd | default('4') }}
 
+{% if fail2ban_nginx_enabled | default(true) %}
+[nginx-http-auth]
+enabled = true
+port    = http,https
+filter  = nginx-http-auth
+logpath = {{ fail2ban_npm_logpath | default('/srv/nginx-proxy-manager/data/logs/*access.log') }}
+backend = auto
+maxretry = {{ fail2ban_nginx_maxretry | default('5') }}
+
+[nginx-botsearch]
+enabled = true
+port    = http,https
+filter  = nginx-botsearch
+logpath = {{ fail2ban_npm_logpath | default('/srv/nginx-proxy-manager/data/logs/*access.log') }}
+backend = auto
+maxretry = {{ fail2ban_nginx_maxretry | default('5') }}
+
+[nginx-bad-request]
+enabled = true
+port    = http,https
+filter  = nginx-bad-request
+logpath = {{ fail2ban_npm_logpath | default('/srv/nginx-proxy-manager/data/logs/*access.log') }}
+backend = auto
+maxretry = {{ fail2ban_nginx_maxretry | default('5') }}
+{% endif %}
+
 
