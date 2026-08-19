@@ -17,15 +17,8 @@ Stan na 19.08.2026. Działamy po kolei, bez wielkich refaktorów naraz.
 
 ## 1. Bezpieczeństwo (najpierw)
 
-Kod Ansible jest gotowy (szablony bindują porty na `127.0.0.1`, UFW tylko 22/80/443, fail2ban + nginx, k3s/Netdata na localhost).
-**Apply na VPS jeszcze nie wszedł** — wymaga potwierdzenia SSH (compose recreate).
-
-Przy wdrażaniu na serwerze, poza Ansible:
-- MinIO i blue-green (`8000`/`8001`) są poza częścią ról — poprawić live compose
-- `npm.sowa.ch`: forward na `127.0.0.1:81` wewnątrz kontenera NPM (dziś `172.17.0.1:81`)
-- `spy.sowa.ch`: `host.docker.internal:8599` + Streamlit `--server.address=127.0.0.1`
-- `docker compose up -d --pull never` (bez pullowania nowych obrazów)
-- Nie robić `compose up` całego `~/stacks/nc` — ma nginx na 80/443; tylko `--no-deps postgres`
+Wgrane na VPS 19.08.2026: compose na `127.0.0.1`, Netdata, Streamlit, trasy `npm.sowa.ch` / `spy.sowa.ch`.
+Publicznie zostaje **22 / 80 / 443**. Do dokończenia: k3s `:6443`, UFW (stare allow), fail2ban nginx.
 
 Panele zostają dostępne przez domeny NPM (Cloudflare) albo tunel:
 `ssh -L 81:127.0.0.1:81 -L 9000:127.0.0.1:9000 -L 5050:127.0.0.1:5050 -L 19999:127.0.0.1:19999 pawel@HOST`
@@ -38,7 +31,10 @@ Panele zostają dostępne przez domeny NPM (Cloudflare) albo tunel:
 - [x] Panele przez NPM/Cloudflare albo SSH tunnel (Tailscale nie instalujemy teraz)
 - [x] UFW w Ansible (`ufw_enabled: true`, tylko 22/80/443)
 - [x] Fail2ban: SSH + jail NPM/nginx
-- [ ] **Apply na VPS** (compose + UFW + k3s + Netdata + Streamlit)
+- [x] **Apply na VPS** — Docker na `127.0.0.1` (publicznie 22/80/443), Netdata, Streamlit, trasy NPM
+- [ ] k3s API `:6443` (i kubelet `:10250`) nadal na `*`
+- [ ] UFW: wyciąć stare allow (81, 9000, …) — Docker już ich nie wystawia
+- [ ] Fail2ban nginx — kod w repo, na serwerze jeszcze nie
 
 ## 2. Naprawa Postgres `shared`
 
