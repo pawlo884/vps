@@ -4,7 +4,7 @@ services:
     container_name: {{ portainer_container_name }}
     restart: unless-stopped
     ports:
-      - "{{ portainer_port }}:9000"
+      - "{{ docker_publish_bind | default('127.0.0.1') }}:{{ portainer_port }}:9000"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - {{ portainer_data_dir }}:/data

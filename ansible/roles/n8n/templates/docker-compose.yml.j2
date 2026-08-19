@@ -6,7 +6,7 @@ services:
     container_name: {{ n8n_container_name }}
     restart: unless-stopped
     ports:
-      - "{{ n8n_external_port }}:{{ n8n_internal_port }}"
+      - "{{ docker_publish_bind | default('127.0.0.1') }}:{{ n8n_external_port }}:{{ n8n_internal_port }}"
     environment:
 {% for key, value in n8n_env.items() %}
       {{ key }}: "{{ value }}"

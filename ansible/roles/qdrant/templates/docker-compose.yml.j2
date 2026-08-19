@@ -5,8 +5,8 @@ services:
     container_name: {{ qdrant_container_name }}
     restart: unless-stopped
     ports:
-      - "{{ qdrant_port }}:6333"
-      - "{{ qdrant_grpc_port }}:6334"
+      - "{{ docker_publish_bind | default('127.0.0.1') }}:{{ qdrant_port }}:6333"
+      - "{{ docker_publish_bind | default('127.0.0.1') }}:{{ qdrant_grpc_port }}:6334"
     volumes:
       - "{{ qdrant_data_dir }}:/qdrant/storage"
     networks:

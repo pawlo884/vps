@@ -14,7 +14,7 @@
     enable web files group = netdata
     web files owner = root
     web files group = root
-    bind to = *
+    bind to = 127.0.0.1
     port = 19999
     # Basic auth credentials
     enable basic authentication = yes
@@ -27,7 +27,7 @@
     allow streaming from = *
     allow netdata.conf from = localhost *
     allow management from = localhost
-    bind to = *
+    bind to = 127.0.0.1
     port = 19999
 {% endif %}
 

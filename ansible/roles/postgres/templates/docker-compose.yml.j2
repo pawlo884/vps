@@ -54,7 +54,7 @@ services:
 {% if instance.ports is defined and instance.ports | length > 0 %}
     ports:
 {% for port in instance.ports %}
-      - "{{ port }}"
+      - "{{ docker_publish_bind | default('127.0.0.1') }}:{{ port }}"
 {% endfor %}
 {% endif %}
 
@@ -74,7 +74,7 @@ services:
     volumes:
       - "{{ pgadmin_data_dir }}:/var/lib/pgadmin"
     ports:
-      - "{{ pgadmin_port }}:80"
+      - "{{ docker_publish_bind | default('127.0.0.1') }}:{{ pgadmin_port }}:80"
     networks:
       - "{{ postgres_network }}"
       - nginx_proxy_manager_network  # Połącz z siecią NPM
