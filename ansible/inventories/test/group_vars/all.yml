@@ -13,14 +13,14 @@ vps_user: pawlo884
 
 # Docker
 docker_install: false
+docker_publish_bind: "127.0.0.1"
 
 # Firewall UFW
+ufw_enabled: false
 ufw_allowed_ports:
   - { port: 22, proto: tcp, comment: "SSH" }
   - { port: 80, proto: tcp, comment: "HTTP" }
   - { port: 443, proto: tcp, comment: "HTTPS" }
-  - { port: 81, proto: tcp, comment: "Nginx Proxy Manager Admin" }
-  - { port: 9000, proto: tcp, comment: "Portainer" }
 
 ufw_default_deny_incoming: true
 ufw_default_allow_outgoing: true

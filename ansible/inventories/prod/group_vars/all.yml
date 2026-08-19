@@ -14,18 +14,38 @@ vps_user: pawel
 
 # Docker
 docker_install: true
+# Publikacja portów Dockera tylko na loopback. Publiczny ruch: 22/80/443 (NPM).
+docker_publish_bind: "127.0.0.1"
 
-# Firewall UFW
-ufw_enabled: false  # na prod ufw jest zarządzany ręcznie / brak pakietu; rola common nie będzie go dotykać
+# Firewall UFW — publicznie tylko SSH i NPM (HTTP/HTTPS).
+# Panele (Portainer, pgAdmin, NPM :81, Netdata, MinIO) przez domenę w NPM albo:
+#   ssh -L 81:127.0.0.1:81 -L 9000:127.0.0.1:9000 -L 5050:127.0.0.1:5050 -L 19999:127.0.0.1:19999 pawel@HOST
+ufw_enabled: true
 ufw_allowed_ports:
   - { port: 22, proto: tcp, comment: "SSH" }
   - { port: 80, proto: tcp, comment: "HTTP" }
   - { port: 443, proto: tcp, comment: "HTTPS" }
-  - { port: 81, proto: tcp, comment: "Nginx Proxy Manager Admin" }
-  - { port: 9000, proto: tcp, comment: "Portainer" }
+ufw_removed_ports:
+  - { port: 81, proto: tcp }
+  - { port: 19999, proto: tcp }
+  - { port: 8000, proto: tcp }
+  - { port: 8001, proto: tcp }
+  - { port: 8501, proto: tcp }
+  - { port: 8599, proto: tcp }
+  - { port: 9000, proto: tcp }
+  - { port: 9100, proto: tcp }
+  - { port: 9101, proto: tcp }
+  - { port: 6333, proto: tcp }
+  - { port: 6334, proto: tcp }
+  - { port: 5050, proto: tcp }
 
 ufw_default_deny_incoming: true
 ufw_default_allow_outgoing: true
+
+# k3s API tylko na localhost (kubectl zostaje na 127.0.0.1:6443)
+k3s_restrict_api: true
+# Natywny Netdata (systemd) też tylko localhost
+monitoring_native_bind_localhost: true
 
 # Sysctl
 sysctl_swappiness: 10
@@ -74,6 +94,8 @@ landing_applications: []
   #   url: "https://app.sowa.ch"
   #   description: "Główna aplikacja Django"
 
+# Nginx Proxy Manager - panel admina na 127.0.0.1:81 (nie na świat).
+# npm.sowa.ch musi iść do 127.0.0.1:81 WEWNĄTRZ kontenera NPM (nie 172.17.0.1).
 # Nginx Proxy Manager - domeny konfigurujesz przez GUI na porcie 81
 # Po uruchomieniu kontenera landing, dodaj w NPM:
 # - Domain: sowa.ch

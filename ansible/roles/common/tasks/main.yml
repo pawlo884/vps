@@ -57,6 +57,16 @@
     append: yes
   when: docker_install | default(false)
 
+- name: Remove extra UFW allow rules
+  community.general.ufw:
+    rule: allow
+    port: "{{ item.port | string }}"
+    proto: "{{ item.proto }}"
+    delete: true
+  loop: "{{ ufw_removed_ports }}"
+  when: ufw_enabled | default(false) and ufw_removed_ports is defined
+  failed_when: false
+
 - name: Configure UFW firewall
   community.general.ufw:
     rule: allow
@@ -84,6 +94,52 @@
   community.general.ufw:
     state: enabled
   when: ufw_enabled | default(false)
+
+- name: Check if k3s is installed
+  stat:
+    path: /usr/local/bin/k3s
+  register: k3s_binary
+  when: k3s_restrict_api | default(false)
+
+- name: Ensure k3s config directory exists
+  file:
+    path: /etc/rancher/k3s
+    state: directory
+    mode: "0755"
+  when:
+    - k3s_restrict_api | default(false)
+    - k3s_binary is not skipped
+    - k3s_binary.stat.exists | default(false)
+
+- name: Restrict k3s API to localhost
+  copy:
+    dest: /etc/rancher/k3s/config.yaml
+    content: |
+      # Ansible: API tylko na 127.0.0.1
+      bind-address: 127.0.0.1
+    mode: "0600"
+  notify: restart k3s
+  when:
+    - k3s_restrict_api | default(false)
+    - k3s_binary is not skipped
+    - k3s_binary.stat.exists | default(false)
+
+- name: Check native Netdata config
+  stat:
+    path: /etc/netdata/netdata.conf
+  register: netdata_conf
+  when: monitoring_native_bind_localhost | default(true)
+
+- name: Bind native Netdata to localhost
+  lineinfile:
+    path: /etc/netdata/netdata.conf
+    regexp: '^\s*bind to\s*='
+    line: "\tbind to = 127.0.0.1"
+  notify: restart native netdata
+  when:
+    - monitoring_native_bind_localhost | default(true)
+    - netdata_conf is not skipped
+    - netdata_conf.stat.exists | default(false)
 
 # Hardening: sysctl
 - name: Configure sysctl (vm.swappiness)
