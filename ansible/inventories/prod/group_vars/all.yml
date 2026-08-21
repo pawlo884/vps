@@ -41,6 +41,10 @@ ufw_removed_ports:
   - { port: 6334, proto: tcp }
   - { port: 5050, proto: tcp }
 
+# NPM (sieć Dockera) → procesy na hoście. Nie otwiera portu na świat.
+ufw_docker_to_host_ports:
+  - { port: 8599, proto: tcp, src: "172.16.0.0/12", comment: "NPM to Soundcore Streamlit" }
+
 ufw_default_deny_incoming: true
 ufw_default_allow_outgoing: true
 

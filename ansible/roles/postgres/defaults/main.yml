@@ -7,6 +7,8 @@ postgres_instances:
     db_user: shareduser
     db_password: change_me_shared  # Zmień przez --extra-vars lub vault!
     data_dir: /srv/postgres/shared/data
+    volume_dest: /var/lib/postgresql
+    pgdata: /var/lib/postgresql/18/docker
     backups_dir: /srv/postgres/shared/backups
     shm_size: 512m
     shared_buffers: 1GB
@@ -16,7 +18,7 @@ postgres_instances:
     # ports: []  # Jeśli chcesz udostępnić na hoście, ustaw np. ["5434:5432"]
 
 # PostgreSQL image
-postgres_image: postgres:18
+postgres_image: postgres:18-alpine
 
 # Docker network for databases
 postgres_network: dbnet

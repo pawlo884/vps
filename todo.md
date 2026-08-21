@@ -10,7 +10,7 @@ Stan na 19.08.2026. Działamy po kolei, bez wielkich refaktorów naraz.
 - Docker Compose + Ansible + k3s obok siebie
 - Reverse proxy: Nginx Proxy Manager (natywny nginx wyłączony)
 - Aplikacja: Django `nc` na **k3s** (`nc-prod`, Traefik NodePort 30080). Docker blue-green jest starym stackiem, nie jest używany.
-- Bazy: `nc-postgres-1` (5432), `nc-postgres-test` (5433), `postgres_shared` (pada), Qdrant
+- Bazy: `nc-postgres-1` (5432), `nc-postgres-test` (5433), `postgres_shared` (PG18, healthy), Qdrant
 - Monitoring: Netdata systemd (~2,2 GB RAM) + Prometheus/Grafana
 
 ---
@@ -18,7 +18,8 @@ Stan na 19.08.2026. Działamy po kolei, bez wielkich refaktorów naraz.
 ## 1. Bezpieczeństwo (najpierw)
 
 Wgrane na VPS 19.08.2026: compose na `127.0.0.1`, Netdata, Streamlit, trasy `npm.sowa.ch` / `spy.sowa.ch`.
-Publicznie zostaje **22 / 80 / 443**. Do dokończenia: k3s `:6443`, UFW (stare allow), fail2ban nginx.
+Wieczór: k3s API/kubelet na `127.0.0.1`, UFW tylko 22/80/443, fail2ban nginx na logach NPM.
+Publicznie zostaje **22 / 80 / 443**.
 
 Panele zostają dostępne przez domeny NPM (Cloudflare) albo tunel:
 `ssh -L 81:127.0.0.1:81 -L 9000:127.0.0.1:9000 -L 5050:127.0.0.1:5050 -L 19999:127.0.0.1:19999 pawel@HOST`
@@ -32,18 +33,17 @@ Panele zostają dostępne przez domeny NPM (Cloudflare) albo tunel:
 - [x] UFW w Ansible (`ufw_enabled: true`, tylko 22/80/443)
 - [x] Fail2ban: SSH + jail NPM/nginx
 - [x] **Apply na VPS** — Docker na `127.0.0.1` (publicznie 22/80/443), Netdata, Streamlit, trasy NPM
-- [ ] k3s API `:6443` (i kubelet `:10250`) nadal na `*`
-- [ ] UFW: wyciąć stare allow (81, 9000, …) — Docker już ich nie wystawia
-- [ ] Fail2ban nginx — kod w repo, na serwerze jeszcze nie
+- [x] k3s API `:6443` i kubelet `:10250` na `127.0.0.1`
+- [x] UFW: wycięte stare allow (81, 9000, …) — zostaje 22/80/443
+- [x] Fail2ban nginx — jail na logach NPM (`*access.log`)
 
 ## 2. Naprawa Postgres `shared`
 
-Kontener `postgres_shared` (`postgres:18`) restartuje się w pętli — zły mount pod PG18 (`/var/lib/postgresql/data` vs nowy layout). Backupy `shared` przez to nic nie zrzucają.
+Kontener `postgres_shared` (`postgres:18-alpine`) stoi. Dane PG18 są w `/srv/postgres/shared/data/18/docker`, mount na `/var/lib/postgresql`. Backup `pg_backup_shared.sh` znów zrzuca.
 
-- [ ] Ustalić wersję danych na dysku (PG16/17/18)
-- [ ] Albo pin `postgres:16` i zostawić stary mount
-- [ ] Albo migracja `pg_upgrade` pod layout PG18
-- [ ] Sprawdzić, czy cron backup `shared` znów działa
+- [x] Ustalić wersję danych na dysku — **PG18**
+- [x] Layout PG18: `pgdata` → `18/docker`, obraz `postgres:18-alpine` (nie pin 16)
+- [x] Cron backup `shared` — test ręczny OK (`shared_2026-08-19_19-22.sql.gz`)
 - [ ] Decyzja: jedna instancja Postgres dla aplikacji (`shared` **albo** `nc-postgres-1`), nie dwie równoległe
 
 ## 3. Celery

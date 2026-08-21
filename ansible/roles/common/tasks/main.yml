@@ -76,6 +76,16 @@
   loop: "{{ ufw_allowed_ports }}"
   when: ufw_allowed_ports is defined and (ufw_enabled | default(false))
 
+- name: Allow Docker networks to selected host ports
+  community.general.ufw:
+    rule: allow
+    src: "{{ item.src | default('172.16.0.0/12') }}"
+    port: "{{ item.port | string }}"
+    proto: "{{ item.proto }}"
+    comment: "{{ item.comment | default('') }}"
+  loop: "{{ ufw_docker_to_host_ports | default([]) }}"
+  when: ufw_enabled | default(false) and (ufw_docker_to_host_ports | default([]) | length > 0)
+
 - name: Set UFW defaults
   community.general.ufw:
     direction: "{{ item.direction }}"
@@ -115,8 +125,10 @@
   copy:
     dest: /etc/rancher/k3s/config.yaml
     content: |
-      # Ansible: API tylko na 127.0.0.1
+      # Ansible: API i kubelet tylko na 127.0.0.1
       bind-address: 127.0.0.1
+      kubelet-arg:
+        - address=127.0.0.1
     mode: "0600"
   notify: restart k3s
   when:

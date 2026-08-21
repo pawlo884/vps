@@ -42,12 +42,12 @@ services:
       - -c
       - tcp_keepalives_count=3
     volumes:
-      - "{{ instance.data_dir }}:/var/lib/postgresql/data"
+      - "{{ instance.data_dir }}:{{ instance.volume_dest | default(instance.pgdata | default('/var/lib/postgresql/data')) }}"
       - "{{ instance.backups_dir }}:/backups"
     networks:
       - "{{ postgres_network }}"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U \"{{ instance.db_user }}\""]
+      test: ["CMD-SHELL", "pg_isready -U \"{{ instance.db_user }}\" -d \"{{ instance.db_name }}\""]
       interval: 10s
       timeout: 5s
       retries: 5

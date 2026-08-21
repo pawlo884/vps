@@ -72,6 +72,18 @@
   failed_when: false
   when: monitoring_install | default(true)
 
+- name: Fail if Netdata port is busy but container is not running
+  ansible.builtin.fail:
+    msg: >
+      Port 127.0.0.1:{{ monitoring_port }} jest zajęty, a kontener {{ monitoring_container_name }} nie działa.
+      Zatrzymaj usługę blokującą port (często po apt: natywny netdata), np.:
+      sudo systemctl stop netdata && sudo systemctl disable netdata
+      albo usuń inny kontener mapujący ten port (docker ps -a).
+  when:
+    - monitoring_install | default(true)
+    - netdata_port_check.stdout | default('free') != 'free'
+    - monitoring_container_name not in (netdata_running.stdout | default(''))
+
 - name: Build Netdata volumes list
   set_fact:
     netdata_volumes: "{{ ['netdata-data:/var/lib/netdata', 'netdata-config:/etc/netdata'] + ([monitoring_config_path + '/.htpasswd:/etc/netdata/.htpasswd:ro'] if (monitoring_auth_enabled | default(true) and monitoring_auth_user is defined and monitoring_auth_password is defined) else []) }}"
@@ -98,5 +110,7 @@
       '*': ignore
   when:
     - monitoring_install | default(true)
-    - netdata_running.stdout | default('') == '' or netdata_port_check.stdout | default('free') == 'free'
+    # Uruchom tylko gdy port wolny albo już działa nasz kontener (idempotentnie); OR było błędne —
+    # przy zajętym porcie i braku kontenera playbook pada wcześniej na fail powyżej.
+    - (netdata_port_check.stdout | default('free') == 'free') or (monitoring_container_name in (netdata_running.stdout | default('')))
 
