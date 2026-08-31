@@ -48,8 +48,10 @@ ufw_docker_to_host_ports:
 ufw_default_deny_incoming: true
 ufw_default_allow_outgoing: true
 
-# k3s API tylko na localhost (kubectl zostaje na 127.0.0.1:6443)
+# k3s: bind-address i kubelet na LAN IP węzła (nie na 127.0.0.1 — exec/logs/metrics).
+# ansible_host to publiczne IP; kubelet musi nasłuchiwać na InternalIP (Endpoint kubernetes).
 k3s_restrict_api: true
+k3s_node_ip: "192.168.50.31"
 # Natywny Netdata (systemd) też tylko localhost
 monitoring_native_bind_localhost: true
 
@@ -117,3 +119,14 @@ app_manage_containers: false
 n8n_data_dir: /srv/n8n
 n8n_compose_dir: "/home/{{ vps_user }}/stacks/n8n"
 n8n_network: nginx_proxy_manager_network
+
+# PrestaShop — za NPM, bez publikacji portów. Po apply:
+# Cloudflare: A shop → 212.127.93.27
+# NPM: shop.sowa.ch → prestashop:80 + Let's Encrypt + Force SSL
+# Instalator: https://shop.sowa.ch/install/
+prestashop_install: true
+prestashop_domain: shop.sowa.ch
+prestashop_network: nginx_proxy_manager_network
+prestashop_compose_dir: "/home/{{ vps_user }}/stacks/prestashop"
+prestashop_mysql_dir: /mnt/data2tb/prestashop/mysql
+prestashop_html_dir: /mnt/data2tb/prestashop/html

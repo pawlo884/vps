@@ -121,17 +121,30 @@
     - k3s_binary is not skipped
     - k3s_binary.stat.exists | default(false)
 
-- name: Restrict k3s API to localhost
+- name: Configure k3s bind-address and kubelet address
   copy:
     dest: /etc/rancher/k3s/config.yaml
     content: |
-      # Ansible: API i kubelet tylko na 127.0.0.1
-      bind-address: 127.0.0.1
+      # Ansible: API i kubelet na IP węzła ({{ k3s_node_ip | default(ansible_default_ipv4.address) }})
+      bind-address: {{ k3s_node_ip | default(ansible_default_ipv4.address) }}
       kubelet-arg:
-        - address=127.0.0.1
-    mode: "0600"
+        - address={{ k3s_node_ip | default(ansible_default_ipv4.address) }}
+    mode: "0644"
   notify: restart k3s
   when:
+    - k3s_restrict_api | default(false)
+    - k3s_binary is not skipped
+    - k3s_binary.stat.exists | default(false)
+
+- name: Allow kubelet from node IP
+  community.general.ufw:
+    rule: allow
+    src: "{{ k3s_node_ip | default(ansible_default_ipv4.address) }}"
+    port: "10250"
+    proto: tcp
+    comment: "k3s kubelet"
+  when:
+    - ufw_enabled | default(false)
     - k3s_restrict_api | default(false)
     - k3s_binary is not skipped
     - k3s_binary.stat.exists | default(false)

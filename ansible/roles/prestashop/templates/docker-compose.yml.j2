@@ -1,0 +1,82 @@
+---
+services:
+  prestashop-db:
+    image: {{ prestashop_db_image }}
+    container_name: {{ prestashop_db_container_name }}
+    restart: unless-stopped
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    environment:
+      MYSQL_ROOT_PASSWORD: "{{ prestashop_db_root_password }}"
+      MYSQL_DATABASE: "{{ prestashop_db_name }}"
+      MYSQL_USER: "{{ prestashop_db_user }}"
+      MYSQL_PASSWORD: "{{ prestashop_db_password }}"
+      MARIADB_AUTO_UPGRADE: "1"
+    volumes:
+      - "{{ prestashop_mysql_dir }}:/var/lib/mysql"
+    networks:
+      - {{ prestashop_internal_network }}
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    logging:
+      driver: "json-file"
+      options:
+        max-file: "3"
+        max-size: "50m"
+    deploy:
+      resources:
+        limits:
+          cpus: '{{ prestashop_db_cpu_limit }}'
+          memory: {{ prestashop_db_memory_limit }}
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+  prestashop:
+    image: {{ prestashop_image }}
+    container_name: {{ prestashop_container_name }}
+    restart: unless-stopped
+    depends_on:
+      prestashop-db:
+        condition: service_healthy
+    environment:
+      DB_SERVER: "{{ prestashop_db_container_name }}"
+      DB_NAME: "{{ prestashop_db_name }}"
+      DB_USER: "{{ prestashop_db_user }}"
+      DB_PASSWD: "{{ prestashop_db_password }}"
+      PS_INSTALL_AUTO: "0"
+      PS_DOMAIN: "{{ prestashop_domain }}"
+      PS_ENABLE_SSL: "1"
+      PS_LANGUAGE: "{{ prestashop_language }}"
+      PS_COUNTRY: "{{ prestashop_country }}"
+      PS_DEV_MODE: "0"
+    volumes:
+      - "{{ prestashop_html_dir }}:/var/www/html"
+    networks:
+      - {{ prestashop_internal_network }}
+      - {{ prestashop_network }}
+    logging:
+      driver: "json-file"
+      options:
+        max-file: "3"
+        max-size: "50m"
+    deploy:
+      resources:
+        limits:
+          cpus: '{{ prestashop_app_cpu_limit }}'
+          memory: {{ prestashop_app_memory_limit }}
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+networks:
+  {{ prestashop_internal_network }}:
+    driver: bridge
+  {{ prestashop_network }}:
+    name: {{ prestashop_network }}
+    external: true

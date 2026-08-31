@@ -1,0 +1,9 @@
+- hosts: web
+  become: true
+  vars_files:
+    - "{{ inventory_dir }}/group_vars/secrets.yml"
+  vars:
+    prestashop_install: true
+  roles:
+    - common
+    - prestashop

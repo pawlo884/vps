@@ -12,7 +12,7 @@ variables:
   ANSIBLE_FORCE_COLOR: "true"
   # Tagi Ansible - zostaw puste żeby uruchomić wszystko, lub podaj np. "app,landing" / "gitlab_runner"
   # Dostępne tagi: common, fail2ban, web, db, postgres, postgres_test, qdrant, nginx_proxy_manager,
-  #                backups, monitoring, portainer, app, landing, n8n, gitlab_runner, storage, security
+  #                backups, monitoring, portainer, app, landing, n8n, prestashop, gitlab_runner, storage, security
   DEPLOY_TAGS: ""
 
 cache:

@@ -1,0 +1,28 @@
+---
+prestashop_install: false
+prestashop_user: "{{ vps_user }}"
+
+prestashop_compose_dir: "/home/{{ prestashop_user }}/stacks/prestashop"
+prestashop_mysql_dir: /mnt/data2tb/prestashop/mysql
+prestashop_html_dir: /mnt/data2tb/prestashop/html
+
+prestashop_image: "prestashop/prestashop:8.2"
+prestashop_container_name: prestashop
+prestashop_internal_port: 80
+
+prestashop_db_image: "mariadb:11.4"
+prestashop_db_container_name: prestashop-db
+prestashop_db_name: prestashop
+prestashop_db_user: prestashop
+
+prestashop_network: nginx_proxy_manager_network
+prestashop_internal_network: prestashop_internal
+
+prestashop_domain: shop.sowa.ch
+prestashop_language: pl
+prestashop_country: pl
+
+prestashop_db_memory_limit: 1G
+prestashop_app_memory_limit: 1G
+prestashop_db_cpu_limit: "1.0"
+prestashop_app_cpu_limit: "1.0"

@@ -1,0 +1,58 @@
+---
+- name: PrestaShop stack
+  when: prestashop_install | default(false)
+  block:
+    - name: Assert PrestaShop DB passwords are set
+      ansible.builtin.assert:
+        that:
+          - prestashop_db_root_password | default('') | length > 0
+          - prestashop_db_password | default('') | length > 0
+        fail_msg: >-
+          Ustaw prestashop_db_root_password i prestashop_db_password
+          w inventories/prod/group_vars/secrets.yml
+
+    - name: Check PrestaShop compose path state
+      ansible.builtin.stat:
+        path: "{{ prestashop_compose_dir }}"
+      register: prestashop_compose_path
+
+    - name: Remove wrong PrestaShop compose path when it's not a directory
+      ansible.builtin.file:
+        path: "{{ prestashop_compose_dir }}"
+        state: absent
+      when: prestashop_compose_path.stat.exists and (not prestashop_compose_path.stat.isdir)
+
+    - name: Ensure PrestaShop directories exist
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        owner: "{{ prestashop_user }}"
+        group: "{{ prestashop_user }}"
+        mode: "0755"
+      loop:
+        - "{{ prestashop_compose_dir }}"
+        - "{{ prestashop_mysql_dir }}"
+        - "{{ prestashop_html_dir }}"
+
+    - name: Generate docker-compose.yml for PrestaShop
+      ansible.builtin.template:
+        src: docker-compose.yml.j2
+        dest: "{{ prestashop_compose_dir }}/docker-compose.yml"
+        owner: "{{ prestashop_user }}"
+        group: "{{ prestashop_user }}"
+        mode: "0644"
+
+    - name: Ensure Docker network for PrestaShop proxy exists
+      community.docker.docker_network:
+        name: "{{ prestashop_network }}"
+        state: present
+      when: not ansible_check_mode
+
+    - name: Start PrestaShop stack
+      community.docker.docker_compose_v2:
+        project_src: "{{ prestashop_compose_dir }}"
+        state: present
+        recreate: auto
+      environment:
+        COMPOSE_PROJECT_NAME: prestashop
+      when: not ansible_check_mode
