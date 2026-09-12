@@ -1,0 +1,4 @@
+**/Recordings/**
+/mnt/**
+**/.venv/**
+**/node_modules/**
