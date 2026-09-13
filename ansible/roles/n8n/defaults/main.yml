@@ -4,7 +4,7 @@ n8n_user: "{{ vps_user }}"
 n8n_data_dir: /srv/n8n
 n8n_compose_dir: "/home/{{ n8n_user }}/stacks/n8n"
 
-n8n_image: "n8nio/n8n:latest"
+n8n_image: "n8nio/n8n:2.37.9"  # przypięte 2026-09-13
 n8n_container_name: "n8n"
 n8n_internal_port: 5678
 n8n_external_port: 5678 # używane tylko na test, na prod za NPM może być bez mapowania

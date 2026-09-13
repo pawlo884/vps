@@ -13,12 +13,6 @@
 - name: reload systemd
   command: systemctl daemon-reload
 
-- name: restart k3s
-  systemd:
-    name: k3s
-    state: restarted
-  when: k3s_restrict_api | default(false)
-
 - name: restart native netdata
   systemd:
     name: netdata

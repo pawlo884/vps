@@ -4,7 +4,16 @@ monitoring_install: true
 monitoring_image: netdata/netdata
 monitoring_port: 19999
 monitoring_container_name: netdata
-monitoring_config_path: /var/lib/docker/volumes/netdata-config/_data
+# Naprawione 2026-09-13: ta ścieżka nigdy nie istniała na serwerze — Netdata
+# działa natywnie (apt/systemd), nie w Dockerze (rola ma zabezpieczenie:
+# "Fail if Netdata port is busy but container is not running", więc bezpiecznie
+# odmówi próby postawienia kontenera obok natywnej instalacji). Skutek: konfigi
+# go.d (nvme.conf, postgres.conf) zawsze lądowały donikąd — monitoring
+# Postgresa przez Netdata nigdy realnie nie działał. Poprawiona ścieżka wskazuje
+# na prawdziwy katalog configu. UWAGA: ponowne odpalenie tej roli nadpisze
+# /etc/netdata/netdata.conf szablonem netdata.conf.j2 — zweryfikuj go najpierw
+# względem obecnego pliku na serwerze.
+monitoring_config_path: /etc/netdata
 monitoring_nvme_devices:
   - /dev/nvme0n1
 

@@ -2,7 +2,7 @@
 # Konfiguracja kontenera testowego PostgreSQL
 postgres_test_enabled: true
 postgres_test_compose_dir: ~/stacks/test-postgres
-postgres_test_image: postgres:18.1-alpine
+postgres_test_image: postgres:18.6-alpine  # ujednolicone 2026-09-13 (zgodnie z produkcją, nie w dół do 18.1)
 postgres_test_container_name: nc-postgres-test
 postgres_test_port: "5433:5432"
 postgres_test_volume: nc_postgres_test_data
@@ -10,7 +10,10 @@ postgres_test_network: test_network
 postgres_test_force_recreate: false
 
 # Zmienne środowiskowe (hasło w secrets.yml)
-postgres_test_user: testuser
+# UWAGA: te POSTGRES_* są kosmetyczne — wolumen (external, nc_postgres_test_data)
+# istnieje od 2025-11-10, obraz nie robi initdb więc je ignoruje. Rzeczywista
+# rola do logowania to "pawel" (sprawdzone 2026-09-13 przez psql -U pawel).
+postgres_test_user: pawel
 postgres_test_db: testdb
 # postgres_test_password: nadpisywane przez secrets.yml
 

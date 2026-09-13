@@ -1,5 +1,18 @@
 ---
 # Django app deployment configuration
+#
+# UWAGA (2026-09-13): prawdziwy deploy produkcyjny NIE idzie przez tę rolę.
+# Realny proces: /home/pawel/apps/nc/scripts/deploy-prod.sh używający
+# /home/pawel/apps/nc/docker-compose/docker-compose.prod.yml (patrz komentarz
+# w tamtym pliku: "JEDEN stack docker-compose, zastępuje k3s + blue-green";
+# COMPOSE_PROJECT_NAME=docker-compose, kontenery nc-web/nc-redis-1/
+# nc-celery-*/nc-flower). app_compose_dir poniżej ("stacks/nc") zarządza
+# WYŁĄCZNIE Postgresem (nc-postgres-1) od tego samego dnia — reszta serwisów
+# została stamtąd usunięta jako martwa/nieaktualna kopia po incydencie
+# spowodowanym próbą jej użycia. Zarządzanie kontenerami/env/repo przez tę
+# rolę jest domyślnie WYŁĄCZONE poniżej — nie włączaj bez przepisania jej
+# pod rzeczywisty proces deploy-prod.sh (profile migrate, git reset --hard,
+# health check).
 app_name: nc
 app_user: "{{ vps_user }}"
 app_dir: "/home/{{ vps_user }}/apps/{{ app_name }}"
@@ -12,16 +25,16 @@ app_repo_branch: main
 # Docker configuration
 app_docker_image: "{{ app_name }}:latest"
 app_dockerfile_path: "deployments/docker/Dockerfile.prod"
-app_compose_dir: "/home/{{ vps_user }}/stacks/{{ app_name }}"
+app_compose_dir: "/home/{{ vps_user }}/stacks/{{ app_name }}"  # UWAGA: to teraz zarządza tylko Postgresem, patrz komentarz wyżej
 app_env_file: ".env"
 app_redis_password: ""
 app_compose_build_policy: always
 app_compose_pull_policy: always
 app_compose_recreate_policy: always
-app_manage_containers: true
-app_manage_env: true
+app_manage_containers: false  # bezpieczny domyślnie od 2026-09-13, patrz komentarz wyżej
+app_manage_env: false
 app_env_force: false
-app_manage_repo: true
+app_manage_repo: false
 
 # Environment variables (będą przekazane do .env)
 app_env_vars:

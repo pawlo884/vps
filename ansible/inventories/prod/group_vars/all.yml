@@ -44,6 +44,12 @@ ufw_removed_ports:
 # NPM (sieć Dockera) → procesy na hoście. Nie otwiera portu na świat.
 ufw_docker_to_host_ports:
   - { port: 8599, proto: tcp, src: "172.16.0.0/12", comment: "NPM to Soundcore Streamlit" }
+  # Netdata (19999) — te dwie reguły istniały już ręcznie na serwerze
+  # (znalezione i udokumentowane w Ansible 2026-09-13), plus nowa dla
+  # Tailscale (100.64.0.0/10 — spójne z dostępem do paneli od 2026-09-12/13).
+  - { port: 19999, proto: tcp, src: "172.16.0.0/12", comment: "NPM to Netdata" }
+  - { port: 19999, proto: tcp, src: "192.168.50.0/24", comment: "LAN Netdata" }
+  - { port: 19999, proto: tcp, src: "100.64.0.0/10", comment: "Tailscale Netdata" }
 
 ufw_default_deny_incoming: true
 ufw_default_allow_outgoing: true
@@ -130,3 +136,8 @@ prestashop_network: nginx_proxy_manager_network
 prestashop_compose_dir: "/home/{{ vps_user }}/stacks/prestashop"
 prestashop_mysql_dir: /mnt/data2tb/prestashop/mysql
 prestashop_html_dir: /mnt/data2tb/prestashop/html
+
+# gitlab-runner nie jest zainstalowany na serwerze (sprawdzone 2026-09-13,
+# brak binarki/usługi, brak tokena) — jawnie wyłączone, żeby site.yml
+# nie próbował go instalować przy okazji.
+gitlab_runner_install: false

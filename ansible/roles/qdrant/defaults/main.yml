@@ -1,7 +1,7 @@
 ---
 # Qdrant vector database configuration
 qdrant_install: true
-qdrant_image: qdrant/qdrant:latest
+qdrant_image: qdrant/qdrant:v1.18.2  # przypięte 2026-09-13
 qdrant_container_name: qdrant
 qdrant_port: 6333
 qdrant_grpc_port: 6334
