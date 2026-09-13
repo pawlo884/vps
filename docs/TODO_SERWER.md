@@ -95,19 +95,20 @@ Dwa stacki, ~17% CPU non-stop, cAdvisor sam ~10%.
 
 ## 🟡 HIGIENA — bez pośpiechu
 
-- [ ] Przypiąć wersje obrazów zamiast `:latest`: `n8n`, `minio`, `pgadmin4`, `nginx-proxy-manager`, `qdrant`, `portainer-ce`
-- [ ] Ujednolicić Postgres → wszędzie `18.1-alpine`
-- [ ] `docker_cleanup.sh`: dopisać `docker builder prune -f --filter until=168h` + `docker image prune -af --filter until=168h`
-- [ ] Uporządkować config: aktywne `/home/pawel/stacks/`; usunąć puste `/opt/vps/stacks/`, nieużywane `/home/pawel/projects/nc/`
-- [ ] Zsynchronizować rzeczywisty stan do repo Ansible `/opt/vps` (są niezacommitowane zmiany, stary HEAD)
-- [ ] `/etc/apt/apt.conf.d/50unattended-upgrades`: `Unattended-Upgrade::Automatic-Reboot "true"` + `Automatic-Reboot-Time "04:30"`
+- [x] **Przypięte wersje obrazów** (2026-09-13): `n8n:2.37.9`, `pgadmin4:9.11`, `nginx-proxy-manager:2.15.1`, `portainer-ce:2.39.5`, `minio:RELEASE.2025-09-07T16-13-09Z` (Docker Hub zablokował pull tego repo — obraz otagowany lokalnie z już posiadanego), `qdrant:v1.18.2`. Wszystkie zweryfikowane działające.
+- [x] **Postgres ujednolicony** (2026-09-13) — ale **w górę, nie do 18.1** jak pierwotnie planowano: realna wersja produkcyjna to była już 18.6 (tag `18-alpine` sam podjechał), więc `postgres_shared`, `nc-postgres-1`, `nc-postgres-test` przypięte na **`18.6-alpine`**. Cofnięcie do 18.1 byłoby downgrade'em prod baz.
+- [x] `docker_cleanup.sh`: dopisane `docker builder prune -f --filter until=168h` + `docker image prune -af --filter until=168h`
+- [x] `Unattended-Upgrade::Automatic-Reboot "true"` + `Automatic-Reboot-Time "04:30"` — aktywne
+- ⚠️ **Incydent 2026-09-13 przy okazji pinowania Postgresa** — `/home/pawel/stacks/nc/docker-compose.yml` miał martwe/nieaktualne definicje `web`/`redis`/`celery-*`/`flower`/`nginx` (zły obraz, zły `DJANGO_SETTINGS_MODULE`). Próba "naprawy" tego co wyglądało na config-drift zdjęła na kilka minut `nc-web`/`redis`/`celery`/`flower`. Naprawione właściwym plikiem `/home/pawel/apps/nc/docker-compose/docker-compose.prod.yml` (`COMPOSE_PROJECT_NAME=docker-compose` — to jest celowe, patrz `scripts/deploy-prod.sh`). Martwe serwisy usunięte z `stacks/nc/docker-compose.yml` — zostawiony tylko realny `postgres` + komentarz-ostrzeżenie. `nc-postgres-1` (dane prod) w ogóle nietknięty, cały czas healthy.
+- [ ] Uporządkować config: potwierdzone że `/home/pawel/apps/nc/` to prawdziwe źródło kodu+deploy dla `nc`; `/home/pawel/stacks/nc/` teraz tylko Postgres. Nadal do sprawdzenia: `/opt/vps/stacks/` (puste), `/home/pawel/projects/nc/` (osobna kopia, nieużywana?) — nie ruszane w tej sesji.
+- [ ] Zsynchronizować rzeczywisty stan do repo Ansible `/opt/vps`
 - [ ] Alerty (Netdata/Grafana): dysk >85%, brak świeżego backupu >26h, load>8 przez 15 min, cert TLS <14 dni
-- [ ] Redis: przenieść z `172.17.0.1:6379` na dedykowaną sieć docker zamiast docker0
-- [ ] `nc-celery-*`: sprawdzić czemu restartowały się (uptime 3h); rozważyć `healthcheck` zamiast `sleep 20`
-- [ ] `timedatectl` — sprawdzić zegar/RTC (pliki PrestaShop z mtime 2027)
-- [ ] Wyłączyć nieużywane: `sudo systemctl disable --now bluetooth ModemManager` (jeśli nie do nagrywania Soundcore)
-- [ ] Naprawić lub wyłączyć `bt-record-healthcheck.service` (faił w logach)
-- [ ] Rozważyć `PermitRootLogin no` już zrobione w kroku 2 — potwierdzić
+- [x] Redis (`nc-redis-1`) — zweryfikowane 2026-09-13: już tylko `127.0.0.1:6379` (nie `172.17.0.1`), prawdopodobnie samo się domknęło po usunięciu k3s. Nieistotne.
+- [ ] `nc-celery-*`: restart 2026-09-13 (przy incydencie) zresetował uptime — nie da się już zdiagnozować pierwotnej przyczyny z przeglądu; obserwować dalej
+- [x] `timedatectl`/mtime 2027 — sprawdzone 2026-09-13: zegar OK (NTP aktywne), pliki z mtime 2027 to tylko 2 nieszkodliwe artefakty cache Symfony w `var/cache/prod/`
+- [ ] Wyłączyć nieużywane: `sudo systemctl disable --now bluetooth ModemManager` (jeśli nie do nagrywania Soundcore) — **do potwierdzenia z userem, czy używane**
+- [x] `bt-record-healthcheck.service` — sprawdzone 2026-09-13: **jednostka nie istnieje** na hoście, nic do naprawienia
+- [x] `PermitRootLogin no` — potwierdzone aktywne (zrobione w kroku 2)
 
 ---
 
