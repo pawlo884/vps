@@ -100,9 +100,16 @@ Dwa stacki, ~17% CPU non-stop, cAdvisor sam ~10%.
 - [x] `docker_cleanup.sh`: dopisane `docker builder prune -f --filter until=168h` + `docker image prune -af --filter until=168h`
 - [x] `Unattended-Upgrade::Automatic-Reboot "true"` + `Automatic-Reboot-Time "04:30"` — aktywne
 - ⚠️ **Incydent 2026-09-13 przy okazji pinowania Postgresa** — `/home/pawel/stacks/nc/docker-compose.yml` miał martwe/nieaktualne definicje `web`/`redis`/`celery-*`/`flower`/`nginx` (zły obraz, zły `DJANGO_SETTINGS_MODULE`). Próba "naprawy" tego co wyglądało na config-drift zdjęła na kilka minut `nc-web`/`redis`/`celery`/`flower`. Naprawione właściwym plikiem `/home/pawel/apps/nc/docker-compose/docker-compose.prod.yml` (`COMPOSE_PROJECT_NAME=docker-compose` — to jest celowe, patrz `scripts/deploy-prod.sh`). Martwe serwisy usunięte z `stacks/nc/docker-compose.yml` — zostawiony tylko realny `postgres` + komentarz-ostrzeżenie. `nc-postgres-1` (dane prod) w ogóle nietknięty, cały czas healthy.
-- [ ] Uporządkować config: potwierdzone że `/home/pawel/apps/nc/` to prawdziwe źródło kodu+deploy dla `nc`; `/home/pawel/stacks/nc/` teraz tylko Postgres. Nadal do sprawdzenia: `/opt/vps/stacks/` (puste), `/home/pawel/projects/nc/` (osobna kopia, nieużywana?) — nie ruszane w tej sesji.
-- [ ] Zsynchronizować rzeczywisty stan do repo Ansible `/opt/vps`
-- [ ] Alerty (Netdata/Grafana): dysk >85%, brak świeżego backupu >26h, load>8 przez 15 min, cert TLS <14 dni
+- [x] Uporządkować config (2026-09-13): potwierdzone że `/home/pawel/apps/nc/` to prawdziwe źródło kodu+deploy dla `nc`; `/home/pawel/stacks/nc/` teraz tylko Postgres. `/opt/vps/stacks/` (pusty plik 0-bajtowy) usunięty z gita. `/home/pawel/projects/nc/` (zdezaktualizowany klon tego samego repo, utknięty na commicie z 31.10.2025, 91MB) — usunięty całkowicie.
+- [x] `nc-postgres-test`: poprawiony `POSTGRES_USER` w compose (`testuser`→`pawel`, zgodnie z rzeczywistą rolą — zmienne i tak kosmetyczne, wolumen external już istniał)
+- [ ] Zsynchronizować rzeczywisty stan do repo Ansible `/opt/vps` (repo `/opt/vps` samo w sobie to punkt startowy — reszta stacków w `/home/pawel/stacks/` i `/home/pawel/apps/` nadal nie jest częścią żadnego Ansible playbooka, tylko ręcznie zarządzana)
+- [x] Bluetooth/ModemManager — potwierdzone z userem: używane (Soundcore/nagrywanie), zostają włączone
+- [x] **Alerty Netdata skonfigurowane** (2026-09-13):
+  - Dysk >85% — już był domyślny szablon Netdata (warn 80%, crit 90%), nic do zmiany
+  - Cert TLS <14 dni — domyślny szablon `x509check_days_until_expiration` (warn<14d, crit<7d) już istniał, tylko dodany kolektor `x509check` monitorujący `sowa.ch`, `nc.sowa.ch`, `shop.sowa.ch` (`/etc/netdata/go.d/x509check.conf`) — **odkryto że `nc.sowa.ch` ma osobny cert (49 dni), nie wspólny wildcard z resztą (83/77 dni)**
+  - Brak świeżego backupu >26h — nowy kolektor `filecheck` (`/etc/netdata/go.d/filecheck.conf`) monitorujący mtime `/srv/backups/postgres/{shared,nc}` + custom alarm `/etc/netdata/health.d/pg_backup_freshness.conf` (warn>26h, crit>48h)
+  - Load>8 przez 15 min — custom alarm `/etc/netdata/health.d/custom_load.conf` (`load15_absolute_high`, warn>8, crit>15) — dodatkowy obok domyślnego (znormalizowanego per-core) szablonu Netdata
+  - [ ] **Do zrobienia przez usera w przeglądarce**: kanał powiadomień w Netdata Cloud (app.netdata.cloud → Space → Notifications) — bez tego alerty są widoczne w dashboardzie, ale nic nie powiadamia aktywnie
 - [x] Redis (`nc-redis-1`) — zweryfikowane 2026-09-13: już tylko `127.0.0.1:6379` (nie `172.17.0.1`), prawdopodobnie samo się domknęło po usunięciu k3s. Nieistotne.
 - [ ] `nc-celery-*`: restart 2026-09-13 (przy incydencie) zresetował uptime — nie da się już zdiagnozować pierwotnej przyczyny z przeglądu; obserwować dalej
 - [x] `timedatectl`/mtime 2027 — sprawdzone 2026-09-13: zegar OK (NTP aktywne), pliki z mtime 2027 to tylko 2 nieszkodliwe artefakty cache Symfony w `var/cache/prod/`
@@ -119,10 +126,11 @@ Zapisane 2026-09-12, świadomie odłożone do czasu domknięcia sekcji 🔴/🟠
 - **Herdr** — [herdrdev/herdr](https://github.com/herdrdev/herdr), terminal multiplexer dla sesji agentów (Claude Code/Codex), instalacja: `curl -fsSL https://herdr.dev/install.sh | sh`
 - **Hermes Agent** — [NousResearch/hermes-agent](https://github.com/NousResearch/hermes-agent), self-hosted agent AI z gatewayem do Telegram/Discord/Slack/itd., config `~/.hermes/config.yaml`; podłączenie do herdr: `herdr integration install hermes`
 - **Notion** — jako pamięć/baza ticketów, research, brainstormów, raportów postępu (po stronie Hermesa)
-- Do wdrożenia potrzebne: token bota Telegram (BotFather), integration token Notion — **żaden jeszcze nie założony** (stan na 2026-09-12)
-- [ ] Dokończyć najpierw punkty 1-10 wyżej (panele + SSH + reboot + backupy)
+- Do wdrożenia potrzebne: token bota Telegram (BotFather), integration token Notion — **żaden jeszcze nie założony** (stan na 2026-09-13)
+- [x] Dokończyć najpierw punkty 1-10 wyżej (panele + SSH + reboot + backupy) — zrobione 2026-09-12/13 (poza #7 i #8, świadomie odłożone)
+- [x] **Herdr zainstalowany** (2026-09-13): `herdr 0.9.0` w `~/.local/bin`, PATH dopisany w `~/.bashrc`
 - [ ] Założyć token Telegram bota (BotFather) i integration token Notion
-- [ ] Zainstalować herdr, potem hermes-agent, spiąć `herdr integration install hermes`
+- [ ] Zainstalować hermes-agent, spiąć `herdr integration install hermes` (wymaga Hermesa zainstalowanego)
 - [ ] Rozważyć izolację (osobny user systemowy / kontener) skoro to zdalny kanał sterowania
 
 ---
