@@ -62,8 +62,10 @@ Zaległy od 2026-09-03 (`6.8.0-139`, `linux-base`).
 - [x] `sudo reboot` (zerwało też sesję Claude Code — oczekiwane, ta sama maszyna)
 - [x] Po restarcie: kernel `6.8.0-139-generic` ✅, 18/18 kontenerów wstało, k3s dalej usunięty, Tailscale/dnsmasq-sowa/SSH hardening/swap wszystko przetrwało, `shop`/`nc`/`pgadmin`/`grafana` przetestowane — zachowują się jak powinny
 
-### 7. Przenieść dane z dysku root na 2 TB
-Root 76%, `/mnt/data2tb` w 1%.
+### 7. Przenieść dane z dysku root na 2 TB — odłożone na kiedyś (2026-09-13)
+Root był 76% → po usunięciu k3s i sprzątaniu jest teraz **38% (88GB wolne)** — presja w dużej mierze zniknęła, to już nie pilne, tylko opcjonalne (więcej zapasu, szybszy/większy dysk pod bazy).
+**Inwentarz co by się przeniosło** (sprawdzone 2026-09-13): `/var/lib/docker` (25GB — obrazy + WSZYSTKIE nazwane woluminy: `nc-postgres-1`, `nc-postgres-test`, qdrant, n8n, portainer, redis), `/srv/postgres/shared/{data,backups}` (447MB, jedyna baza na bind mouncie zamiast nazwanego wolumenu — `postgres_shared`), `/srv/backups` (1.3GB). Reszta (`n8n`/`portainer`/`npm` w `/srv/`) pomijalna. `minio` (12GB) i `prestashop` (513MB) już są na `/mnt/data2tb`.
+Przy okazji zauważone: `nc-postgres-1` ma dodatkowy anonimowy wolumen zamontowany też do `/var/lib/postgresql` obok właściwego `nc_postgres_data` — prawdopodobnie nieszkodliwy artefakt obrazu, do sprawdzenia kiedyś.
 - [ ] Zatrzymać Docker: `sudo systemctl stop docker`
 - [ ] `/etc/docker/daemon.json` → `{ "data-root": "/mnt/data2tb/docker" }`
 - [ ] `sudo rsync -aP /var/lib/docker/ /mnt/data2tb/docker/`
