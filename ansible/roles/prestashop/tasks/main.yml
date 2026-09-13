@@ -56,3 +56,77 @@
       environment:
         COMPOSE_PROJECT_NAME: prestashop
       when: not ansible_check_mode
+
+    # SSL w sklepie musi być włączone: inaczej canonical redirect
+    # z https:// na http:// zapętla się z Cloudflare / HTTPS-First w przeglądarce.
+    - name: Check if PrestaShop database is installed
+      ansible.builtin.command:
+        argv:
+          - docker
+          - exec
+          - "{{ prestashop_db_container_name }}"
+          - mariadb
+          - "-u{{ prestashop_db_user }}"
+          - "-p{{ prestashop_db_password }}"
+          - "{{ prestashop_db_name }}"
+          - -N
+          - -e
+          - SHOW TABLES LIKE 'ps_configuration'
+      register: prestashop_db_installed
+      changed_when: false
+      failed_when: false
+      no_log: true
+      when: not ansible_check_mode
+
+    - name: Count PrestaShop SSL flags that still need enabling
+      ansible.builtin.command:
+        argv:
+          - docker
+          - exec
+          - "{{ prestashop_db_container_name }}"
+          - mariadb
+          - "-u{{ prestashop_db_user }}"
+          - "-p{{ prestashop_db_password }}"
+          - "{{ prestashop_db_name }}"
+          - -N
+          - -e
+          - SELECT COUNT(*) FROM ps_configuration WHERE name IN ('PS_SSL_ENABLED','PS_SSL_ENABLED_EVERYWHERE') AND IFNULL(value,'0')<>'1'
+      register: prestashop_ssl_need
+      changed_when: false
+      failed_when: false
+      no_log: true
+      when:
+        - not ansible_check_mode
+        - prestashop_db_installed.stdout is defined
+        - "'ps_configuration' in (prestashop_db_installed.stdout | default(''))"
+
+    - name: Enable PrestaShop SSL behind reverse proxy
+      ansible.builtin.command:
+        argv:
+          - docker
+          - exec
+          - "{{ prestashop_db_container_name }}"
+          - mariadb
+          - "-u{{ prestashop_db_user }}"
+          - "-p{{ prestashop_db_password }}"
+          - "{{ prestashop_db_name }}"
+          - -e
+          - UPDATE ps_configuration SET value='1' WHERE name IN ('PS_SSL_ENABLED','PS_SSL_ENABLED_EVERYWHERE') AND IFNULL(value,'0')<>'1'
+      register: prestashop_ssl_flags
+      no_log: true
+      when:
+        - not ansible_check_mode
+        - (prestashop_ssl_need.stdout | default('0') | trim | int) > 0
+
+    - name: Clear PrestaShop cache after SSL flags
+      ansible.builtin.command:
+        argv:
+          - docker
+          - exec
+          - "{{ prestashop_container_name }}"
+          - rm
+          - -rf
+          - /var/www/html/var/cache/prod
+      when:
+        - not ansible_check_mode
+        - prestashop_ssl_flags is changed

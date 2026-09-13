@@ -12,6 +12,13 @@
     dest: "{{ monitoring_config_path }}/go.d/nvme.conf"
     mode: '0644'
 
+- name: Check if native Netdata systemd is active
+  command: systemctl is-active netdata
+  register: native_netdata_active
+  changed_when: false
+  failed_when: false
+  when: monitoring_install | default(true)
+
 - name: Merge postgres_instances with passwords from secrets for monitoring
   set_fact:
     monitoring_postgres_instances: "{{ monitoring_postgres_instances | default([]) + [item | combine((postgres_instances_secrets | default([]) | selectattr('name', 'equalto', item.name) | first | default({}))) | combine({'host': 'postgres_' + item.name, 'port': '5432'})] }}"
@@ -24,6 +31,7 @@
     - monitoring_postgres_enabled | default(true)
     - postgres_instances is defined
     - postgres_instances | length > 0
+    - native_netdata_active.stdout | default('') != 'active'
   no_log: true  # Ukryj hasła w logach
 
 - name: Configure Netdata PostgreSQL monitoring
@@ -31,9 +39,10 @@
     src: postgres.conf.j2
     dest: "{{ monitoring_config_path }}/go.d/postgres.conf"
     mode: '0644'
-  when: 
+  when:
     - monitoring_postgres_enabled | default(true)
     - monitoring_postgres_instances | default([]) | length > 0
+    - native_netdata_active.stdout | default('') != 'active'
 
 - name: Configure Netdata main config
   template:
@@ -83,6 +92,7 @@
     - monitoring_install | default(true)
     - netdata_port_check.stdout | default('free') != 'free'
     - monitoring_container_name not in (netdata_running.stdout | default(''))
+    - native_netdata_active.stdout | default('') != 'active'
 
 - name: Build Netdata volumes list
   set_fact:
@@ -110,7 +120,16 @@
       '*': ignore
   when:
     - monitoring_install | default(true)
+    # Natywny systemd Netdata już zajmuje 19999 — nie stawiamy drugiego w Dockerze.
+    - native_netdata_active.stdout | default('') != 'active'
     # Uruchom tylko gdy port wolny albo już działa nasz kontener (idempotentnie); OR było błędne —
     # przy zajętym porcie i braku kontenera playbook pada wcześniej na fail powyżej.
     - (netdata_port_check.stdout | default('free') == 'free') or (monitoring_container_name in (netdata_running.stdout | default('')))
+
+- name: Configure native Netdata PostgreSQL collector
+  ansible.builtin.include_tasks: postgres_native.yml
+  when:
+    - monitoring_install | default(true)
+    - monitoring_postgres_enabled | default(true)
+    - native_netdata_active.stdout | default('') == 'active'
 

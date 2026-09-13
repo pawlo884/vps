@@ -1,0 +1,10 @@
+---
+- name: reload systemd
+  ansible.builtin.systemd:
+    daemon_reload: true
+
+- name: restart native netdata
+  ansible.builtin.systemd:
+    name: netdata
+    state: restarted
+  failed_when: false

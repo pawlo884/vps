@@ -1,6 +1,8 @@
 ---
 - hosts: web
   become: true
+  vars_files:
+    - "{{ playbook_dir }}/../inventories/prod/group_vars/secrets.yml"
   roles:
     - monitoring
 

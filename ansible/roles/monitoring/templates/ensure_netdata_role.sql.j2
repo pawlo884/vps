@@ -1,0 +1,10 @@
+DO $netdata$
+BEGIN
+  IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = '{{ monitoring_postgres_monitor_user }}') THEN
+    CREATE ROLE {{ monitoring_postgres_monitor_user }} LOGIN PASSWORD '{{ monitoring_postgres_password | replace("'", "''") }}';
+  ELSE
+    ALTER ROLE {{ monitoring_postgres_monitor_user }} WITH LOGIN PASSWORD '{{ monitoring_postgres_password | replace("'", "''") }}';
+  END IF;
+END
+$netdata$;
+GRANT pg_monitor TO {{ monitoring_postgres_monitor_user }};

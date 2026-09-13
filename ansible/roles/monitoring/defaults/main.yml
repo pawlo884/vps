@@ -14,13 +14,31 @@ monitoring_container_name: netdata
 # /etc/netdata/netdata.conf szablonem netdata.conf.j2 — zweryfikuj go najpierw
 # względem obecnego pliku na serwerze.
 monitoring_config_path: /etc/netdata
+monitoring_native_config_dir: /etc/netdata
 monitoring_nvme_devices:
   - /dev/nvme0n1
 
 # PostgreSQL monitoring
 monitoring_postgres_enabled: true
-# Lista instancji PostgreSQL do monitorowania (będzie automatycznie wypełniona z postgres_instances)
+monitoring_postgres_monitor_user: netdata
+# monitoring_postgres_password jest w secrets.yml
+# Lista instancji — Docker Netdata (nazwy kontenerów, patrz sekcja wyżej).
+# Natywny Netdata (aktualny stan serwera) używa monitoring_postgres_targets poniżej.
 monitoring_postgres_instances: []
+monitoring_postgres_targets:
+  - name: nc
+    container: nc-postgres-1
+    host: 127.0.0.1
+    port: 5432
+  - name: test
+    container: nc-postgres-test
+    host: 127.0.0.1
+    port: 5433
+  - name: shared
+    container: postgres_shared
+    host: auto
+    port: 5432
+    network: dbnet
 
 # Netdata security
 monitoring_auth_enabled: true  # Włącz basic authentication

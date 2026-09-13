@@ -1,0 +1,100 @@
+---
+- name: Ensure native Netdata go.d directory exists
+  ansible.builtin.file:
+    path: "{{ monitoring_native_config_dir }}/go.d"
+    state: directory
+    owner: root
+    group: netdata
+    mode: "0755"
+
+- name: Assert Netdata PostgreSQL monitor password is set
+  ansible.builtin.assert:
+    that:
+      - monitoring_postgres_password | default('') | length > 0
+    fail_msg: >-
+      Ustaw monitoring_postgres_password w inventories/prod/group_vars/secrets.yml
+
+- name: Collect PostgreSQL container info for Netdata
+  community.docker.docker_container_info:
+    name: "{{ item.container }}"
+  register: monitoring_pg_containers
+  loop: "{{ monitoring_postgres_targets }}"
+  failed_when: false
+  when: not ansible_check_mode
+
+- name: Find PostgreSQL superuser for socket auth
+  ansible.builtin.shell: |
+    set -euo pipefail
+    for u in "$(docker exec "{{ item.container }}" printenv POSTGRES_USER 2>/dev/null || true)" pawel postgres shareduser testuser; do
+      [ -z "$u" ] && continue
+      if docker exec -u postgres "{{ item.container }}" psql -U "$u" -d postgres -c 'SELECT 1' >/dev/null 2>&1; then
+        printf '%s\n' "$u"
+        exit 0
+      fi
+    done
+    exit 1
+  args:
+    executable: /bin/bash
+  register: monitoring_pg_superusers
+  loop: "{{ monitoring_postgres_targets }}"
+  changed_when: false
+  failed_when: false
+  when: not ansible_check_mode
+
+- name: Ensure Netdata pg_monitor role in PostgreSQL
+  ansible.builtin.command:
+    argv:
+      - docker
+      - exec
+      - -u
+      - postgres
+      - "{{ item.item.container }}"
+      - psql
+      - -U
+      - "{{ item.stdout | trim }}"
+      - -d
+      - postgres
+      - -v
+      - ON_ERROR_STOP=1
+      - -c
+      - "{{ lookup('template', 'ensure_netdata_role.sql.j2') }}"
+  loop: "{{ monitoring_pg_superusers.results | default([]) }}"
+  when:
+    - not ansible_check_mode
+    - item.rc | default(1) == 0
+    - item.stdout | default('') | trim | length > 0
+  no_log: true
+
+- name: Reset native Netdata PostgreSQL jobs
+  ansible.builtin.set_fact:
+    monitoring_postgres_instances: []
+
+- name: Build native Netdata PostgreSQL jobs
+  ansible.builtin.set_fact:
+    monitoring_postgres_instances: "{{ monitoring_postgres_instances + [job] }}"
+  loop: "{{ monitoring_pg_containers.results | default([]) }}"
+  vars:
+    target: "{{ item.item }}"
+    job:
+      name: "{{ target.name }}"
+      host: "{{ target.host if target.host != 'auto' else item.container.NetworkSettings.Networks[target.network | default('dbnet')].IPAddress }}"
+      port: "{{ target.port }}"
+      db_user: "{{ monitoring_postgres_monitor_user }}"
+      db_password: "{{ monitoring_postgres_password }}"
+      db_name: postgres
+  when:
+    - not ansible_check_mode
+    - item.exists | default(false)
+    - item.container.State.Running | default(false)
+    - target.host != 'auto' or (item.container.NetworkSettings.Networks[target.network | default('dbnet')].IPAddress | default('') | length > 0)
+  no_log: true
+
+- name: Configure native Netdata PostgreSQL collector
+  ansible.builtin.template:
+    src: postgres.conf.j2
+    dest: "{{ monitoring_native_config_dir }}/go.d/postgres.conf"
+    owner: root
+    group: netdata
+    mode: "0640"
+  notify: restart native netdata
+  when: monitoring_postgres_instances | default([]) | length > 0

@@ -119,11 +119,11 @@
   register: netdata_conf
   when: monitoring_native_bind_localhost | default(true)
 
-- name: Bind native Netdata to localhost
+- name: Configure native Netdata bind addresses
   lineinfile:
     path: /etc/netdata/netdata.conf
     regexp: '^\s*bind to\s*='
-    line: "\tbind to = 127.0.0.1"
+    line: "\tbind to = {{ monitoring_native_bind_to | default('127.0.0.1 172.17.0.1') }}"
   notify: restart native netdata
   when:
     - monitoring_native_bind_localhost | default(true)
