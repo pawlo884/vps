@@ -9,7 +9,7 @@ postgres_instances:
     data_dir: /srv/postgres/shared/data
     volume_dest: /var/lib/postgresql
     pgdata: /var/lib/postgresql/18/docker
-    backups_dir: /srv/postgres/shared/backups
+    backups_dir: /mnt/data2tb/backups/postgres/shared  # przeniesione z /srv na 2TB 2026-09-14
     shm_size: 512m
     shared_buffers: 1GB
     effective_cache_size: 3GB

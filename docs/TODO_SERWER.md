@@ -70,7 +70,9 @@ Przy okazji zauważone: `nc-postgres-1` ma dodatkowy anonimowy wolumen zamontowa
 - [ ] `/etc/docker/daemon.json` → `{ "data-root": "/mnt/data2tb/docker" }`
 - [ ] `sudo rsync -aP /var/lib/docker/ /mnt/data2tb/docker/`
 - [ ] `sudo systemctl start docker` → zweryfikować `docker ps`, potem usunąć stare `/var/lib/docker`
-- [ ] Przenieść `/srv/backups` → `/mnt/data2tb/backups` (zaktualizować ścieżki w `pg_backup_*.sh`)
+- [x] **Backupy Postgresa przeniesione na 2TB** (2026-09-14): `/mnt/data2tb/backups/postgres/{shared,nc,test}`, stare dane z `/srv/backups/postgres/{nc,shared}` i `/srv/postgres/test/backups` skopiowane (rsync, zweryfikowane 1:1) i zostawione jako historyczna kopia — nieużywane od teraz. Wszystkie 10 skryptów `/usr/local/bin/pg_backup_*.sh` (shared + 4× nc_* + 5× test_*) przepięte na nowe `BACKUPS_DIR`, ręcznie przetestowane (dwa uruchomienia, dumpy wylądowały na 2TB). **Uwaga — ryzyko drift**: prawdziwe wartości `backups_dir` dla `nc_*`/`test_*` żyją tylko w zmiennej CI/CD `ANSIBLE_SECRETS` w GitLabie (na serwerze i w żadnym repo checkoucie nie ma pliku `secrets.yml`) — `secrets.yml.example` w repo zaktualizowany, ale **trzeba ręcznie zaktualizować `ANSIBLE_SECRETS` w GitLab → Settings → CI/CD → Variables** (sekcja `postgres_backup_instances`, `backups_dir` z `/srv/...` na `/mnt/data2tb/backups/postgres/{nc,test}`), inaczej kolejny `deploy_prod`/`dry_run --check` z pełnym apply cofnie tę zmianę.
+- [ ] Posprzątać stare zduplikowane wpisy crona (`pg_backup_nc.sh`/`pg_backup_test.sh` — legacy, piszą teraz donikąd sensownego na starych ścieżkach `/srv/...`, plus 2 osierocone komentarze `#Ansible: PostgreSQL backup prod/test` bez zadania pod spodem) — zablokowane w tej sesji przez klasyfikator agenta (zapis do crontab na zdalnym hoście), do zrobienia ręcznie albo z jawną zgodą
+- [ ] Przenieść resztę `/srv/backups` (nie-Postgresowe, jeśli coś tam jeszcze jest) → `/mnt/data2tb/backups`
 
 ### 8. Backupy off-site + test restore
 Teraz: lokalnie, jeden dysk, retencja 7 dni, nietestowane, bez wolumenów.
