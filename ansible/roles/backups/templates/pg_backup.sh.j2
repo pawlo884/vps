@@ -6,6 +6,7 @@ CONTAINER="{{ item.container }}"
 DB_NAME="{{ item.db_name }}"
 DB_USER="{{ item.db_user }}"
 BACKUPS_DIR="{{ item.backups_dir }}"
+MIRROR_DIR="{{ item.mirror_dir | default('') }}"
 RETENTION_DAYS={{ backup_retention_days }}
 
 STAMP=$(date +%F_%H-%M)
@@ -33,4 +34,12 @@ fi
 # Remove old backups
 find "${BACKUPS_DIR}" -type f -name "${DB_NAME}_*.sql.gz" -mtime +${RETENTION_DAYS} -delete
 echo "Removed backups older than ${RETENTION_DAYS} days"
+
+# Mirror to secondary disk (redundancy — BACKUPS_DIR above stays the primary copy)
+if [ -n "${MIRROR_DIR}" ]; then
+  mkdir -p "${MIRROR_DIR}"
+  cp "${BACKUP_FILE}.gz" "${MIRROR_DIR}/"
+  find "${MIRROR_DIR}" -type f -name "${DB_NAME}_*.sql.gz" -mtime +${RETENTION_DAYS} -delete
+  echo "Mirrored to ${MIRROR_DIR}"
+fi
 

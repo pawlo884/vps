@@ -23,9 +23,9 @@ __pycache__/
 # Logi
 *.log
 
-# Dane/backupy
-srv/
-backups/
+# Dane/backupy (katalogi w korzeniu repo, nie mylić z ansible/roles/backups/)
+/srv/
+/backups/
 
 # Prywatne konfiguracje (nie commituj z prawdziwymi danymi)
 ansible/inventories/prod/hosts.ini

@@ -17,7 +17,8 @@
       'container': 'postgres_' ~ item.name,
       'db_name': item.db_name,
       'db_user': item.db_user,
-      'backups_dir': item.backups_dir
+      'backups_dir': item.backups_dir,
+      'mirror_dir': item.mirror_dir | default('')
     } ] }}"
   loop: "{{ postgres_instances | default([]) }}"
   when:
@@ -46,6 +47,18 @@
     mode: '0755'
   loop: "{{ postgres_backup_targets }}"
   when: backups_enabled | default(true)
+
+- name: Ensure mirror backup directories exist and have correct permissions
+  file:
+    path: "{{ item.mirror_dir }}"
+    state: directory
+    owner: "{{ vps_user }}"
+    group: "{{ vps_user }}"
+    mode: '0755'
+  loop: "{{ postgres_backup_targets }}"
+  when:
+    - backups_enabled | default(true)
+    - item.mirror_dir | default('') | length > 0
 
 - name: Ensure backup log directory exists
   file:
