@@ -4,6 +4,10 @@ services:
     image: {{ postgres_test_image | default('postgres:18.1-alpine') }}
     container_name: {{ postgres_test_container_name | default('nc-postgres-test') }}
     restart: unless-stopped
+    # UWAGA: te POSTGRES_* są kosmetyczne / bez efektu — wolumen (external,
+    # nc_postgres_test_data) już istnieje od 2025-11-10, więc obraz nie robi
+    # initdb i ignoruje te zmienne. Rzeczywista rola do logowania to "pawel"
+    # (nie "testuser"), sprawdzone 2026-09-13 przez `psql -U pawel -d postgres`.
     environment:
       POSTGRES_USER: {{ postgres_test_user | default('testuser') }}
       POSTGRES_PASSWORD: {{ postgres_test_password }}

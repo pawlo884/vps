@@ -57,13 +57,20 @@ ufw_default_allow_outgoing: true
 # k3s usunięty z serwera 2026-09-12 (patrz docs/TODO_SERWER.md #9) — nc jedzie
 # na Docker Compose. k3s_restrict_api / k3s_node_ip stąd wyleciały jako martwe.
 # Natywny Netdata (systemd): nie na 0.0.0.0/WAN.
-# 127.0.0.1 = tunel SSH, 172.17.0.1 = brama Dockera (NPM proxuje stąd do panelu).
+# 127.0.0.1 = tunel SSH, 172.17.0.1 = brama Dockera (NPM proxuje stąd do panelu),
+# 192.168.50.31 = LAN (UFW wpuszcza 19999 tylko z 192.168.50.0/24).
 monitoring_native_bind_localhost: true
-monitoring_native_bind_to: "127.0.0.1 172.17.0.1"
+monitoring_native_bind_to: "127.0.0.1 172.17.0.1 192.168.50.31"
 
 # Sysctl
 sysctl_swappiness: 10
 
+# Swap (8 GB /swapfile, utworzony ręcznie)
+swap_enabled: true
+swap_file: /swapfile
+
+# Docker cleanup: nieużywane obrazy i build cache starsze niż 7 dni
+docker_cleanup_prune_all: true
 # Docker cleanup schedule (cron format: minute hour day month weekday)
 docker_cleanup_schedule: "0 3 * * 0" # Co niedzielę o 3:00
 
