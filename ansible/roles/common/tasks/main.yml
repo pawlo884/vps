@@ -200,23 +200,27 @@
     mode: '0644'
   notify: reload systemd
 
-# Disable swap
+# Swap: na serwerze jest celowo 8 GB /swapfile (docs/TODO_SERWER.md #4).
+# Rola pilnuje tylko wpisu w fstab; plik tworzony ręcznie (fallocate + mkswap).
+- name: Ensure swap entry in fstab
+  lineinfile:
+    path: /etc/fstab
+    regexp: '^\S+\s+none\s+swap\s'
+    line: "{{ swap_file }} none swap sw 0 0"
+  when: swap_enabled | default(true)
+
 - name: Disable swap
   shell: swapoff -a
   ignore_errors: yes
   changed_when: false
+  when: not (swap_enabled | default(true))
 
 - name: Remove swap entry from fstab
   lineinfile:
     path: /etc/fstab
     regexp: '^.*swap.*$'
     state: absent
-
-- name: Remove swap file if exists
-  file:
-    path: /swap.img
-    state: absent
-  ignore_errors: yes
+  when: not (swap_enabled | default(true))
 
 # Docker cleanup - automatyczne czyszczenie starych obrazów
 - name: Parse docker cleanup schedule
@@ -240,8 +244,11 @@
       echo "$(date): Rozpoczynam czyszczenie Docker..." >> "$LOG_FILE"
       
       {% if docker_cleanup_prune_all | default(false) %}
-      # Usuń wszystkie nieużywane obrazy (ostrożnie!)
-      docker image prune -a -f >> "$LOG_FILE" 2>&1
+      # Usuń dangling images oraz wszystkie nieużywane starsze niż 7 dni
+      docker image prune -af --filter until=168h >> "$LOG_FILE" 2>&1
+      
+      # Usuń build cache starszy niż 7 dni
+      docker builder prune -f --filter until=168h >> "$LOG_FILE" 2>&1
       {% else %}
       # Usuń tylko dangling images (bezpieczniejsze)
       docker image prune -f >> "$LOG_FILE" 2>&1

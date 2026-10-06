@@ -29,15 +29,18 @@
 
 - name: Ensure Nginx Proxy Manager directories exist
   file:
-    path: "{{ item }}"
+    path: "{{ item.path }}"
     state: directory
-    owner: "{{ vps_user }}"
-    group: "{{ vps_user }}"
+    owner: "{{ item.owner }}"
+    group: "{{ item.owner }}"
     mode: '0755'
   loop:
-    - "{{ npm_compose_dir_expanded }}"
-    - "{{ nginx_proxy_manager_data_dir }}"
-    - "{{ nginx_proxy_manager_letsencrypt_dir }}"
+    - { path: "{{ npm_compose_dir_expanded }}", owner: "{{ vps_user }}" }
+    # Dane NPM zapisuje kontener jako root — tak jest na serwerze, nie zmieniamy.
+    - { path: "{{ nginx_proxy_manager_data_dir }}", owner: root }
+    - { path: "{{ nginx_proxy_manager_letsencrypt_dir }}", owner: root }
+  loop_control:
+    label: "{{ item.path }}"
 
 - name: Generate docker-compose.yml for Nginx Proxy Manager
   template:
@@ -52,6 +55,12 @@
     project_src: "{{ npm_compose_dir_expanded }}"
     state: present
     recreate: auto
+  register: npm_compose_result
+  # --check (docker compose --dry-run) nie pobiera ani nie buduje obrazów, więc
+  # recreate na nowym tagu kończy się "No such image" — w dry-run to nie jest błąd.
+  failed_when:
+    - npm_compose_result is failed
+    - not (ansible_check_mode and 'No such image' in (npm_compose_result.msg | default('')))
   become_user: "{{ vps_user }}"
   environment:
     COMPOSE_PROJECT_NAME: nginx-proxy-manager

@@ -90,6 +90,12 @@
     pull: "{{ app_compose_pull_policy | default('always') }}"
     recreate: "{{ app_compose_recreate_policy | default('always') }}"
     remove_orphans: true
+  register: app_compose_result
+  # --check (docker compose --dry-run) nie pobiera ani nie buduje obrazów, więc
+  # recreate na nowym tagu kończy się "No such image" — w dry-run to nie jest błąd.
+  failed_when:
+    - app_compose_result is failed
+    - not (ansible_check_mode and 'No such image' in (app_compose_result.msg | default('')))
   become_user: "{{ app_user }}"
   environment:
     COMPOSE_PROJECT_NAME: "{{ app_name }}"
