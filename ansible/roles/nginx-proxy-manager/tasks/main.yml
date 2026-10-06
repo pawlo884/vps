@@ -52,6 +52,12 @@
     project_src: "{{ npm_compose_dir_expanded }}"
     state: present
     recreate: auto
+  register: npm_compose_result
+  # --check (docker compose --dry-run) nie pobiera ani nie buduje obrazów, więc
+  # recreate na nowym tagu kończy się "No such image" — w dry-run to nie jest błąd.
+  failed_when:
+    - npm_compose_result is failed
+    - not (ansible_check_mode and 'No such image' in (npm_compose_result.msg | default('')))
   become_user: "{{ vps_user }}"
   environment:
     COMPOSE_PROJECT_NAME: nginx-proxy-manager

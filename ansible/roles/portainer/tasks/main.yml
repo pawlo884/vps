@@ -53,6 +53,12 @@
     recreate: auto
     pull: always
     remove_orphans: yes
+  register: portainer_compose_result
+  # --check (docker compose --dry-run) nie pobiera ani nie buduje obrazów, więc
+  # recreate na nowym tagu kończy się "No such image" — w dry-run to nie jest błąd.
+  failed_when:
+    - portainer_compose_result is failed
+    - not (ansible_check_mode and 'No such image' in (portainer_compose_result.msg | default('')))
   become_user: "{{ vps_user }}"
   environment:
     COMPOSE_PROJECT_NAME: portainer
