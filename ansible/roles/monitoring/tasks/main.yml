@@ -12,11 +12,14 @@
     dest: "{{ monitoring_config_path }}/go.d/nvme.conf"
     mode: '0644'
 
+# Sondy tylko czytają stan — muszą działać także w --check (dry_run), inaczej
+# rejestrują pusty stdout i dalsze warunki biorą natywny Netdata za "nieaktywny".
 - name: Check if native Netdata systemd is active
   command: systemctl is-active netdata
   register: native_netdata_active
   changed_when: false
   failed_when: false
+  check_mode: false
   when: monitoring_install | default(true)
 
 - name: Merge postgres_instances with passwords from secrets for monitoring
@@ -44,12 +47,16 @@
     - monitoring_postgres_instances | default([]) | length > 0
     - native_netdata_active.stdout | default('') != 'active'
 
+# netdata.conf.j2 i .htpasswd są dla Netdaty w Dockerze. Natywnej instalacji
+# nie nadpisujemy — jej bind ustawia rola common (monitoring_native_bind_to).
 - name: Configure Netdata main config
   template:
     src: netdata.conf.j2
     dest: "{{ monitoring_config_path }}/netdata.conf"
     mode: '0644'
-  when: monitoring_install | default(true)
+  when:
+    - monitoring_install | default(true)
+    - native_netdata_active.stdout | default('') != 'active'
 
 - name: Create htpasswd file for Netdata basic auth
   htpasswd:
@@ -65,6 +72,7 @@
     - monitoring_auth_enabled | default(true)
     - monitoring_auth_user is defined
     - monitoring_auth_password is defined
+    - native_netdata_active.stdout | default('') != 'active'
   no_log: true
 
 - name: Check if Netdata is already running
@@ -72,6 +80,7 @@
   register: netdata_running
   changed_when: false
   failed_when: false
+  check_mode: false
   when: monitoring_install | default(true)
 
 - name: Check if port {{ monitoring_port }} is already in use
@@ -79,6 +88,7 @@
   register: netdata_port_check
   changed_when: false
   failed_when: false
+  check_mode: false
   when: monitoring_install | default(true)
 
 - name: Fail if Netdata port is busy but container is not running
