@@ -152,3 +152,14 @@ Zapisane 2026-09-12, świadomie odłożone do czasu domknięcia sekcji 🔴/🟠
 
 ## ✅ Działa dobrze — nie ruszać
 UFW + fail2ban · TLS/Let's Encrypt (do 28.10) · codzienne backupy PG · stack observability przypięty do wersji · Redis z hasłem + `CONFIG` zdisablowane · unattended-upgrades aktywne · k3s na LAN IP (nie 0.0.0.0) · healthchecki baz
+
+---
+
+## 🔧 Przegląd okresowy — 2026-10-06
+Serwer stabilny po 3.5 tygodnia (uptime 11 dni, load 0.56, zero failed units). Automatic-Reboot z 13.09 **potwierdzony działający** — kernel sam podjechał z 139→142 bez interwencji.
+- [x] `apt full-upgrade` — 42 pakiety, Docker 29.8.2, nowy kernel 6.8.0-146 (reboot czeka na automatyczny o 04:30, albo ręcznie)
+- [x] Build cache Dockera urósł do 18.8GB mimo cotygodniowego cleanupu (filtr 7-dniowy nie łapie częstych rebuildów przy aktywnym developmencie — dziś m.in. nowy kontener `wallet-bot`) → ręcznie odzyskane, dysk 57%→45%. **Do rozważenia**: skrócić filtr w `docker_cleanup.sh` z `until=168h` na coś krótszego (np. 24-48h), jeśli rebuildy będą dalej częste.
+- [x] Obrazy zaktualizowane: NPM 2.15.1→2.16.0, Qdrant v1.18.2→v1.19.2 (sprawdzone changelogi, zero breaking changes dla naszego setupu — nie używamy DNS-pluginów certbota, których dotyczy ostrzeżenie w release NPM). Zaktualizowane też w rolach Ansible.
+- [ ] Zostały w tyle, nieaktualizowane (świadomie, brak pilności): n8n 2.37.9→2.42.3 (5 wersji), Portainer 2.39.5→2.45.1 (6 wersji), pgAdmin 9.11→9.18 (7 wersji) — większe skoki, warto przejrzeć changelog przed aktualizacją
+- Postgres 18.6 — już najnowsza wersja minor (potwierdzone na postgresql.org/versions.json)
+- Nowy kontener niezwiązany z tym repo: `wallet-bot` (osobisty bot finansowy Telegram) — zanotowane, nie ruszane
