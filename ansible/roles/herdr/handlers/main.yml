@@ -1,0 +1,11 @@
+---
+# Restart zatrzymuje procesy w panelach (wraca układ + wznowienie agentów
+# z integracją). Przy samym update można zamiast tego: herdr update --handoff.
+- name: Restart herdr
+  systemd:
+    name: herdr
+    state: restarted
+    daemon_reload: true
+  when:
+    - herdr_service_enabled | default(true)
+    - not ansible_check_mode

@@ -91,6 +91,13 @@ pgadmin_install: true # Włącz pgAdmin (można zmienić w secrets.yml)
 portainer_takeover: true
 nginx_proxy_manager_takeover: true
 
+# Agenci CLI (docs/HERDR.md): Herdr = runtime z trwałymi panelami,
+# Hermes Agent = agent z pamięcią (klucz modelu: hermes_env_secrets w secrets.yml).
+# Połączenie: ssh pawel@serwer, potem `herdr`; albo z laptopa: herdr machine add <host>
+herdr_install: true
+hermes_install: true
+herdr_integrations: [hermes, claude]  # claude pominięty, dopóki nie ma ~/.claude
+
 # Landing page configuration
 landing_install: true
 landing_use_nextjs: true # Używa Next.js zamiast statycznych plików HTML

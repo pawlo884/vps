@@ -1,0 +1,21 @@
+---
+# Hermes Agent (https://github.com/NousResearch/hermes-agent, MIT) — agent CLI
+# z trwałą pamięcią i umiejętnościami. Na serwerze działa w panelu Herdr jako
+# "HQ", który może sterować Claude Code / Codex w sąsiednich panelach.
+hermes_install: true
+
+hermes_user: "{{ vps_user }}"
+hermes_user_home: "/home/{{ hermes_user }}"
+hermes_home: "{{ hermes_user_home }}/.hermes"  # config, pamięć, sesje, .env
+hermes_bin: "{{ hermes_user_home }}/.local/bin/hermes"
+
+hermes_version: "v2026.9.24"  # przypięte 2026-10-07 (tag z GitHub)
+hermes_installer_url: "https://raw.githubusercontent.com/NousResearch/hermes-agent/{{ hermes_version }}/scripts/install.sh"
+# Bez przeglądarki (Chromium) i computer-use — serwer bez ekranu.
+hermes_installer_args: "--non-interactive --skip-setup --skip-browser --skip-computer-use"
+
+# Klucze dostawców modelu → {{ hermes_home }}/.env (tylko podane klucze,
+# reszta pliku zostaje). Ustaw w secrets.yml, np.:
+#   hermes_env_secrets:
+#     OPENROUTER_API_KEY: "sk-or-..."
+hermes_env_secrets: {}
