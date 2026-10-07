@@ -1,11 +1,12 @@
-# Herdr — agenci CLI z trwałymi sesjami na serwerze
+# Herdr + Hermes Agent — agenci CLI z trwałymi sesjami na serwerze
 
 [Herdr](https://herdr.dev) ([repo](https://github.com/herdrdev/herdr), Apache-2.0) to
 terminalowy multiplekser/runtime dla agentów (Claude Code, Codex, OpenCode, Hermes Agent…).
 Agenci działają w panelach na serwerze i pracują dalej po zamknięciu laptopa; Herdr
 pokazuje ich stan (working / blocked / idle / done) w zakładkach i sidebarze.
 
-Rola: `ansible/roles/herdr` (tag `herdr`, playbook `playbooks/herdr-only.yml`).
+Role: `ansible/roles/herdr` i `ansible/roles/hermes` (tagi `herdr`, `hermes`, oba: `agents`;
+playbook `playbooks/agents-only.yml`).
 
 ## Co instaluje rola
 
@@ -17,6 +18,26 @@ Rola: `ansible/roles/herdr` (tag `herdr`, playbook `playbooks/herdr-only.yml`).
   wznowić rozmowę (`claude --resume <id>`, `hermes --resume <id>`).
 
 Brak portów i reverse proxy — dostęp tylko po SSH (LAN / Tailscale).
+
+## Hermes Agent
+
+[Hermes Agent](https://github.com/NousResearch/hermes-agent) (Nous Research, MIT) to agent
+z trwałą pamięcią i samodoskonalącymi się umiejętnościami. Rola `hermes` instaluje go
+oficjalnym instalatorem z przypiętego tagu (`hermes_version`) do `~/.hermes`,
+komenda `~/.local/bin/hermes`, bez Chromium i computer-use. Instalacja jest jednorazowa;
+aktualizacja: `hermes update` na serwerze.
+
+Klucz modelu: `hermes_env_secrets` w `secrets.yml` (np. `OPENROUTER_API_KEY` albo
+`ANTHROPIC_API_KEY`) — rola dopisuje go do `~/.hermes/.env`. Wybór modelu: `hermes model`.
+Sprawdzenie: `hermes doctor`.
+
+Pierwszy deploy instaluje Hermesa przed Herdrem, więc integracja `hermes` w Herdr
+(stan agenta + `hermes --resume` po restarcie) wpina się od razu.
+
+### Hermes jako HQ w Herdr
+
+W jednym panelu `hermes`, w sąsiednich `claude` / `codex`. Hermes może sterować
+sąsiadami przez socket API Herdr (`herdr --help`, docs: https://herdr.dev/docs/socket-api/).
 
 ## Jak używać
 

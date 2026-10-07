@@ -4,4 +4,5 @@
   vars_files:
     - "{{ inventory_dir }}/group_vars/secrets.yml"
   roles:
+    - hermes
     - herdr

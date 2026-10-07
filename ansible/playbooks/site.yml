@@ -19,7 +19,8 @@
     - { role: app, tags: [app, deploy] }
     - { role: landing, tags: [landing, deploy] }
     - { role: n8n, tags: [n8n, deploy] }
-    - { role: herdr, tags: [herdr] }
+    - { role: hermes, tags: [hermes, agents] }
+    - { role: herdr, tags: [herdr, agents] }  # po hermes: integracja wymaga ~/.hermes
     - { role: prestashop, when: prestashop_install | default(false), tags: [prestashop, deploy] }
     - { role: gitlab-runner, tags: [gitlab_runner] }
     # Rola proxy (Caddy) usunięta 2026-09-13 — martwa, nigdy nieużywana, używamy Nginx Proxy Manager

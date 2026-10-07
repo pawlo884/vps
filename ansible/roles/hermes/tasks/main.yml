@@ -1,0 +1,62 @@
+---
+# Instalacja jednorazowa przez oficjalny instalator (uv + Python w ~/.hermes).
+# Aktualizacja: `hermes update` na serwerze albo usuń ~/.local/bin/hermes
+# i zmień hermes_version przed deployem.
+- name: Check Hermes Agent installation
+  stat:
+    path: "{{ hermes_bin }}"
+  register: hermes_installed
+  when: hermes_install | default(false)
+
+- name: Download Hermes installer (pinned tag)
+  get_url:
+    url: "{{ hermes_installer_url }}"
+    dest: "/tmp/hermes-install-{{ hermes_version }}.sh"
+    owner: "{{ hermes_user }}"
+    mode: "0700"
+  when:
+    - hermes_install | default(false)
+    - not hermes_installed.stat.exists
+
+- name: Install Hermes Agent
+  command: "bash /tmp/hermes-install-{{ hermes_version }}.sh --branch {{ hermes_version }} {{ hermes_installer_args }}"
+  args:
+    creates: "{{ hermes_bin }}"
+  become_user: "{{ hermes_user }}"
+  environment:
+    HOME: "{{ hermes_user_home }}"
+    HERMES_HOME: "{{ hermes_home }}"
+  when:
+    - hermes_install | default(false)
+    - not hermes_installed.stat.exists
+    - not ansible_check_mode
+
+- name: Remove Hermes installer
+  file:
+    path: "/tmp/hermes-install-{{ hermes_version }}.sh"
+    state: absent
+  when: hermes_install | default(false)
+
+- name: Ensure Hermes home exists
+  file:
+    path: "{{ hermes_home }}"
+    state: directory
+    owner: "{{ hermes_user }}"
+    group: "{{ hermes_user }}"
+    mode: "0700"
+  when: hermes_install | default(false)
+
+- name: Set Hermes provider API keys in .env
+  lineinfile:
+    path: "{{ hermes_home }}/.env"
+    regexp: "^{{ item.key }}="
+    line: "{{ item.key }}={{ item.value }}"
+    create: true
+    owner: "{{ hermes_user }}"
+    group: "{{ hermes_user }}"
+    mode: "0600"
+  loop: "{{ hermes_env_secrets | default({}) | dict2items }}"
+  loop_control:
+    label: "{{ item.key }}"
+  no_log: true
+  when: hermes_install | default(false)
