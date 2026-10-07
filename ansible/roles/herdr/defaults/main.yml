@@ -1,0 +1,28 @@
+---
+# Herdr (https://github.com/herdrdev/herdr, Apache-2.0) — runtime dla agentów
+# CLI (Claude Code, Codex, OpenCode, Hermes Agent...): trwałe panele/sesje,
+# które działają dalej po rozłączeniu, ze statusem working/blocked/idle.
+# To nie jest kontener: pojedyncza binarka + headless serwer jako usługa systemd.
+herdr_install: true
+
+herdr_user: "{{ vps_user }}"
+herdr_home: "/home/{{ herdr_user }}"
+
+herdr_version: "0.9.3"  # przypięte 2026-10-07
+herdr_bin_path: /usr/local/bin/herdr
+herdr_download_url: "https://github.com/herdrdev/herdr/releases/download/v{{ herdr_version }}/herdr-linux-{{ herdr_arch }}"
+# SHA-256 binarek z GitHub Release v0.9.3 — przy zmianie wersji zaktualizuj oba.
+herdr_checksums:
+  x86_64: "18a8dc65f1c2fa485884344356dea1cfd911c6f06cf46fa78e193f4087f4dba7"
+  aarch64: "4de7aa3e25678812e92960de64f7c2aaa1bca1f0f80a3c5e559837e231e1f5c0"
+
+# Headless serwer startuje przy boocie, więc po restarcie maszyny układ paneli
+# wraca, a agenci z integracją wznawiają rozmowy (claude --resume itd.).
+herdr_service_enabled: true
+
+# PATH dla paneli: CLI agentów (claude, codex, hermes) zwykle w ~/.local/bin.
+herdr_service_path: "{{ herdr_home }}/.local/bin:/usr/local/bin:/usr/bin:/bin"
+
+# Integracje agentów (`herdr integration install <agent>`), np. [claude, hermes].
+# Hook trafia do katalogu agenta w HOME użytkownika (np. ~/.claude/hooks).
+herdr_integrations: []

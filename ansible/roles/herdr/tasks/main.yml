@@ -1,0 +1,75 @@
+---
+- name: Map CPU architecture for Herdr binary
+  set_fact:
+    herdr_arch: "{{ 'aarch64' if ansible_architecture in ['aarch64', 'arm64'] else 'x86_64' }}"
+  when: herdr_install | default(false)
+
+- name: Check installed Herdr binary
+  stat:
+    path: "{{ herdr_bin_path }}"
+  register: herdr_installed_bin
+  when: herdr_install | default(false)
+
+- name: Install Herdr binary (pinned, checksum verified)
+  get_url:
+    url: "{{ herdr_download_url }}"
+    dest: "{{ herdr_bin_path }}"
+    checksum: "sha256:{{ herdr_checksums[herdr_arch] }}"
+    owner: root
+    group: root
+    mode: "0755"
+  notify: Restart herdr
+  when: herdr_install | default(false)
+
+- name: Install Herdr systemd service
+  template:
+    src: herdr.service.j2
+    dest: /etc/systemd/system/herdr.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart herdr
+  when: herdr_install | default(false)
+
+- name: Enable and start Herdr server
+  systemd:
+    name: herdr
+    enabled: "{{ herdr_service_enabled }}"
+    state: "{{ 'started' if herdr_service_enabled else 'stopped' }}"
+    daemon_reload: true
+  when:
+    - herdr_install | default(false)
+    - not ansible_check_mode
+
+- name: Read Herdr integration status
+  command: "{{ herdr_bin_path }} integration status"
+  become_user: "{{ herdr_user }}"
+  environment:
+    HOME: "{{ herdr_home }}"
+  register: herdr_integration_status
+  changed_when: false
+  check_mode: false
+  when:
+    - herdr_install | default(false)
+    - herdr_integrations | length > 0
+    - not ansible_check_mode or herdr_installed_bin.stat.exists | default(false)
+
+# Wpina hooki statusu agenta (np. ~/.claude/hooks/herdr-agent-state.sh),
+# dzięki którym Herdr widzi working/blocked/idle i wznawia rozmowę po restarcie.
+- name: Install missing or outdated Herdr agent integrations
+  command: "{{ herdr_bin_path }} integration install {{ item }}"
+  become_user: "{{ herdr_user }}"
+  environment:
+    HOME: "{{ herdr_home }}"
+  loop: "{{ herdr_integrations }}"
+  register: herdr_integration_install
+  # Agent jeszcze niezainstalowany ("<agent> directory not found") → pomijamy,
+  # zainstaluje się przy następnym deployu.
+  failed_when:
+    - herdr_integration_install.rc != 0
+    - "'not found' not in (herdr_integration_install.stderr | default(''))"
+  changed_when: herdr_integration_install.rc == 0
+  when:
+    - herdr_install | default(false)
+    - herdr_integration_status.stdout_lines is defined
+    - "(herdr_integration_status.stdout_lines | select('match', item ~ ': current') | list | length) == 0"

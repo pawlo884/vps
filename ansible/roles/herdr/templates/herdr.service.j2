@@ -1,0 +1,25 @@
+# {{ ansible_managed }}
+[Unit]
+Description=Herdr headless server (agent runtime)
+Documentation=https://herdr.dev/docs/
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User={{ herdr_user }}
+Group={{ herdr_user }}
+WorkingDirectory={{ herdr_home }}
+# Ten sam HOME co przy SSH → ten sam socket (~/.config/herdr/herdr.sock),
+# więc `herdr` po zalogowaniu podłącza się do tego serwera.
+Environment=HOME={{ herdr_home }}
+Environment=PATH={{ herdr_service_path }}
+Environment=SHELL=/bin/bash
+ExecStart={{ herdr_bin_path }} server
+ExecStop={{ herdr_bin_path }} server stop
+TimeoutStopSec=30
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

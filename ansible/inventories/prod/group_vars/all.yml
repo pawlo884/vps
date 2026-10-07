@@ -91,10 +91,10 @@ pgadmin_install: true # Włącz pgAdmin (można zmienić w secrets.yml)
 portainer_takeover: true
 nginx_proxy_manager_takeover: true
 
-# Herd — agenci AI + rozmowy/kontekst w jednym miejscu (rola herd)
-# Włącz dopiero po dodaniu herd_bootstrap_master_key do secrets.yml.
-# Panel: herd.sowa.ch w NPM → herd:20001, Websockets ON, Access List internal-panels.
-herd_install: false
+# Herdr — runtime dla agentów CLI (rola herdr, docs/HERDR.md).
+# Połączenie: ssh pawel@serwer, potem `herdr`; albo z laptopa: herdr machine add <host>
+herdr_install: true
+herdr_integrations: []  # np. [claude, hermes] — gdy CLI są zainstalowane
 
 # Landing page configuration
 landing_install: true
