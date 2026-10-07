@@ -1,0 +1,76 @@
+---
+- name: Require Herd bootstrap key before first boot
+  assert:
+    that:
+      - herd_bootstrap_master_key is defined
+      - (herd_bootstrap_master_key | string | length) >= 32
+    fail_msg: >-
+      Brak herd_bootstrap_master_key (min. 32 znaki) w secrets.yml.
+      Wygeneruj: openssl rand -base64 48 — i dodaj do secrets.yml
+      (lokalnie i w GitLab: ANSIBLE_SECRETS).
+    quiet: true
+  when: herd_install | default(false)
+
+- name: Ensure Herd directories exist
+  file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: "{{ vps_user }}"
+    group: "{{ vps_user }}"
+    mode: "{{ item.mode }}"
+  loop:
+    - { path: "{{ herd_compose_dir }}", mode: "0755" }
+    - { path: "{{ herd_data_dir }}", mode: "0700" }
+  when: herd_install | default(false)
+
+- name: Checkout Herd source at pinned version
+  git:
+    repo: "{{ herd_repo_url }}"
+    dest: "{{ herd_src_dir }}"
+    version: "{{ herd_version }}"
+    depth: 1
+    force: true
+  become_user: "{{ vps_user }}"
+  when: herd_install | default(false)
+
+- name: Generate Herd env file
+  template:
+    src: herd.env.j2
+    dest: "{{ herd_compose_dir }}/herd.env"
+    owner: "{{ vps_user }}"
+    group: "{{ vps_user }}"
+    mode: "0600"
+  no_log: true
+  when: herd_install | default(false)
+
+- name: Generate docker-compose.yml for Herd
+  template:
+    src: docker-compose.yml.j2
+    dest: "{{ herd_compose_dir }}/docker-compose.yml"
+    owner: "{{ vps_user }}"
+    group: "{{ vps_user }}"
+    mode: "0644"
+  when: herd_install | default(false)
+
+- name: Ensure Docker network for Herd exists
+  community.docker.docker_network:
+    name: "{{ herd_network }}"
+    state: present
+  when:
+    - herd_install | default(false)
+    - not ansible_check_mode
+
+- name: Build (if needed) and start Herd
+  community.docker.docker_compose_v2:
+    project_src: "{{ herd_compose_dir }}"
+    state: present
+    build: policy  # buduje tylko gdy brak obrazu herd-local:<herd_version>
+    recreate: auto
+  register: herd_compose_result
+  # --check (docker compose --dry-run) nie buduje obrazów — "No such image" w dry-run to nie błąd.
+  failed_when:
+    - herd_compose_result is failed
+    - not (ansible_check_mode and 'No such image' in (herd_compose_result.msg | default('')))
+  environment:
+    COMPOSE_PROJECT_NAME: herd
+  when: herd_install | default(false)

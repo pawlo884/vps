@@ -1,0 +1,35 @@
+---
+# Herd (https://github.com/NickGuAI/Herd, AGPL-3.0) — panel do agentów AI
+# (Claude Code, Codex, Gemini CLI, OpenCode): commanderzy, rozmowy, pamięć
+# i historia trzymane w jednym miejscu, niezależnie od sesji/maszyny.
+#
+# Domyślnie wyłączone: przed pierwszym startem musi istnieć
+# herd_bootstrap_master_key w secrets.yml (Herd nie wygeneruje go sam).
+# Po dodaniu klucza ustaw herd_install: true w group_vars/all.yml.
+herd_install: false
+
+# Brak oficjalnego obrazu na rejestrze — budujemy z repo na przypiętym tagu.
+herd_repo_url: "https://github.com/NickGuAI/Herd.git"
+herd_version: "v0.0.14-beta"  # przypięte 2026-10-07
+herd_image: "herd-local:{{ herd_version }}"
+
+herd_container_name: herd
+herd_internal_port: 20001
+herd_external_port: 20001  # tylko 127.0.0.1 (docker_publish_bind); publicznie przez NPM
+
+herd_compose_dir: "/home/{{ vps_user }}/stacks/herd"
+herd_src_dir: "{{ herd_compose_dir }}/src"
+herd_data_dir: /srv/herd  # SQLite, transkrypty rozmów, rejestr maszyn, hashe kluczy API
+
+herd_network: "nginx_proxy_manager_network"
+
+# Publiczny adres (domena w NPM) — trafia do HERD_ALLOWED_ORIGINS (CORS).
+herd_public_url: "https://herd.sowa.ch"
+
+# Kontener nie ma CLI providerów (claude/codex/...). Pracę wykonuje demon Herd
+# podłączony z maszyny, na której są zalogowane CLI (serwer albo laptop):
+#   herd connect https://herd.sowa.ch --token <token z Settings → Machines>
+herd_provider_execution_mode: "daemon-only"
+
+# Dodatkowe zmienne środowiskowe (np. HERD_MAX_AGENT_SESSIONS).
+herd_env_extra: {}

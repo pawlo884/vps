@@ -91,6 +91,11 @@ pgadmin_install: true # Włącz pgAdmin (można zmienić w secrets.yml)
 portainer_takeover: true
 nginx_proxy_manager_takeover: true
 
+# Herd — agenci AI + rozmowy/kontekst w jednym miejscu (rola herd)
+# Włącz dopiero po dodaniu herd_bootstrap_master_key do secrets.yml.
+# Panel: herd.sowa.ch w NPM → herd:20001, Websockets ON, Access List internal-panels.
+herd_install: false
+
 # Landing page configuration
 landing_install: true
 landing_use_nextjs: true # Używa Next.js zamiast statycznych plików HTML
