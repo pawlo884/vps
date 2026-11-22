@@ -21,5 +21,6 @@
     - { role: n8n, tags: [n8n, deploy] }
     - { role: prestashop, when: prestashop_install | default(false), tags: [prestashop, deploy] }
     - { role: jellyfin, when: jellyfin_install | default(false), tags: [jellyfin, media, deploy] }
+    - { role: filebrowser, when: filebrowser_install | default(false), tags: [filebrowser, media, deploy] }
     - { role: gitlab-runner, tags: [gitlab_runner] }
     # Rola proxy (Caddy) usunięta 2026-09-13 — martwa, nigdy nieużywana, używamy Nginx Proxy Manager

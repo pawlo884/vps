@@ -1,0 +1,20 @@
+---
+# File Browser — wrzucanie filmów do biblioteki Jellyfin przez przeglądarkę.
+# Za NPM (pliki.sowa.ch) z Access List `internal-panels` (LAN/Tailscale + hasło):
+# to zapis na dysk serwera, nie wystawiamy go publicznie.
+filebrowser_install: false
+filebrowser_user: "{{ vps_user }}"
+
+filebrowser_image: "filebrowser/filebrowser:v2.63.23"  # przypięte 2026-11-22 (= latest)
+filebrowser_container_name: filebrowser
+filebrowser_internal_port: 80
+# Tylko loopback, awaryjnie: ssh -L 8085:127.0.0.1:8085 pawel@HOST
+filebrowser_external_port: 8085
+
+filebrowser_compose_dir: "/home/{{ filebrowser_user }}/stacks/filebrowser"
+filebrowser_data_dir: /mnt/data2tb/filebrowser  # baza użytkowników + ustawienia
+# Katalog widoczny w File Browserze — domyślnie biblioteka Jellyfin
+filebrowser_root_dir: "{{ jellyfin_media_dir | default('/mnt/data2tb/media') }}"
+
+filebrowser_network: nginx_proxy_manager_network
+filebrowser_memory_limit: 512M
