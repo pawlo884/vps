@@ -102,10 +102,62 @@
              ((jellyfin_net_info.network.IPAM.Config | default([])) | map(attribute='Subnet') | list
               if (jellyfin_net_info.exists | default(false)) else []) }}
 
-    - name: Check Jellyfin network.xml (created on first start)
+    # Obraz trzyma konfigurację w /config/config. Przy pierwszym starcie network.xml
+    # w ogóle nie powstaje, więc rola kładzie domyślny plik z KnownProxies.
+    - name: Check Jellyfin network.xml
       ansible.builtin.stat:
-        path: "{{ jellyfin_config_dir }}/network.xml"
+        path: "{{ jellyfin_config_dir }}/config/network.xml"
       register: jellyfin_network_xml
+
+    - name: Ensure Jellyfin configuration directory exists
+      ansible.builtin.file:
+        path: "{{ jellyfin_config_dir }}/config"
+        state: directory
+        owner: "{{ jellyfin_user }}"
+        group: "{{ jellyfin_user }}"
+        mode: "0755"
+
+    - name: Seed Jellyfin network.xml with KnownProxies
+      ansible.builtin.copy:
+        dest: "{{ jellyfin_config_dir }}/config/network.xml"
+        owner: "{{ jellyfin_user }}"
+        group: "{{ jellyfin_user }}"
+        mode: "0644"
+        content: |
+          <?xml version="1.0" encoding="utf-8"?>
+          <NetworkConfiguration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+            <BaseUrl />
+            <EnableHttps>false</EnableHttps>
+            <RequireHttps>false</RequireHttps>
+            <InternalHttpPort>8096</InternalHttpPort>
+            <InternalHttpsPort>8920</InternalHttpsPort>
+            <PublicHttpPort>8096</PublicHttpPort>
+            <PublicHttpsPort>8920</PublicHttpsPort>
+            <AutoDiscovery>true</AutoDiscovery>
+            <EnableUPnP>false</EnableUPnP>
+            <EnableIPv4>true</EnableIPv4>
+            <EnableIPv6>false</EnableIPv6>
+            <EnableRemoteAccess>true</EnableRemoteAccess>
+            <LocalNetworkSubnets />
+            <LocalNetworkAddresses />
+            <KnownProxies>
+          {% for proxy in jellyfin_known_proxies_effective %}
+              <string>{{ proxy }}</string>
+          {% endfor %}
+            </KnownProxies>
+            <IgnoreVirtualInterfaces>true</IgnoreVirtualInterfaces>
+            <VirtualInterfaceNames>
+              <string>veth</string>
+            </VirtualInterfaceNames>
+            <EnablePublishedServerUriByRequest>false</EnablePublishedServerUriByRequest>
+            <PublishedServerUriBySubnet />
+            <RemoteIPFilter />
+            <IsRemoteIPFilterBlacklist>false</IsRemoteIPFilterBlacklist>
+          </NetworkConfiguration>
+      notify: restart jellyfin
+      when:
+        - not jellyfin_network_xml.stat.exists
+        - jellyfin_known_proxies_effective | length > 0
 
     - name: Install python3-lxml (needed to edit network.xml)
       ansible.builtin.apt:
@@ -115,7 +167,7 @@
 
     - name: Configure Jellyfin KnownProxies
       community.general.xml:
-        path: "{{ jellyfin_config_dir }}/network.xml"
+        path: "{{ jellyfin_config_dir }}/config/network.xml"
         xpath: /NetworkConfiguration/KnownProxies
         set_children: "{{ jellyfin_known_proxies_effective | map('community.general.dict_kv', 'string') | list }}"
       notify: restart jellyfin
@@ -172,7 +224,7 @@
       ansible.builtin.debug:
         msg: >-
           Brak logów Jellyfin w {{ jellyfin_config_dir }}/log (pierwszy start?) —
-          jail fail2ban i KnownProxies zostaną ustawione przy następnym uruchomieniu roli.
+          jail fail2ban zostanie ustawiony przy następnym uruchomieniu roli.
       when:
         - jellyfin_fail2ban | default(false)
-        - (jellyfin_logs.matched | default(0)) == 0 or not jellyfin_network_xml.stat.exists
+        - (jellyfin_logs.matched | default(0)) == 0

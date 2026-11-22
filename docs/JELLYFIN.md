@@ -44,9 +44,9 @@ Konsekwencje i zabezpieczenia:
    *Force SSL* ON, *HTTP/2* ON. Advanced (opcjonalnie, duże pliki/seek): `proxy_buffering off;`
 3. Otwórz `https://jellyfin.sowa.ch` → kreator: konto admina (silne hasło), biblioteki
    `Filmy` → `/media/filmy`, `Seriale` → `/media/seriale`.
-4. **Uruchom rolę drugi raz** (`DEPLOY_TAGS=jellyfin`): po pierwszym starcie istnieją już
-   `network.xml` i logi, więc rola ustawi `KnownProxies` (restart Jellyfin) i jail fail2ban.
-   Sprawdzenie: `sudo fail2ban-client status jellyfin`.
+4. KnownProxies ląduje w `/mnt/data2tb/jellyfin/config/config/network.xml` (katalog
+   konfiguracji obrazu to `/config/config`; sam Jellyfin nie tworzy tego pliku przy pierwszym starcie).
+   Jail fail2ban wchodzi, gdy jest już plik logu. Sprawdzenie: `sudo fail2ban-client status jellyfin`.
 5. Dashboard → Playback → Transcoding: *Intel QuickSync (QSV)* (albo VAAPI), urządzenie `/dev/dri/renderD128`.
 6. Wrzucanie plików: przez **File Browser** (niżej) albo
    `rsync -avP film.mkv pawel@daktylowy:/mnt/data2tb/media/filmy/` (po Tailscale).

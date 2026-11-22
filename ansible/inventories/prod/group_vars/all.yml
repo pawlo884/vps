@@ -147,7 +147,7 @@ prestashop_html_dir: /mnt/data2tb/prestashop/html
 # Jellyfin — filmy/seriale zdalnie (też TV bez Tailscale). Po apply (docs/JELLYFIN.md):
 # Cloudflare: A jellyfin → 212.127.93.27, DNS-only (SZARA chmurka! proxy = naruszenie ToS)
 # NPM: jellyfin.sowa.ch → jellyfin:8096, Websockets ON, bez Access List, Let's Encrypt
-# fail2ban (jail `jellyfin`, ban w DOCKER-USER) ustawia rola przy 2. uruchomieniu.
+# fail2ban (jail `jellyfin`, ban w DOCKER-USER) i KnownProxies w config/config/network.xml.
 # Pliki wrzucasz do /mnt/data2tb/media/{filmy,seriale}.
 jellyfin_install: true
 jellyfin_media_dir: /mnt/data2tb/media
