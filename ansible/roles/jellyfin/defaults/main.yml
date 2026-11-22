@@ -1,6 +1,6 @@
 ---
 # Jellyfin — serwer multimediów (filmy/seriale) do odtwarzania zdalnego.
-# Dostęp: przez NPM (jellyfin.sowa.ch) publicznie, ale rekord w Cloudflare
+# Dostęp: przez NPM (cinema.sowa.ch) publicznie, ale rekord w Cloudflare
 # MUSI być DNS-only (szara chmurka) — streaming wideo przez CF proxy łamie ich ToS.
 jellyfin_install: false
 jellyfin_user: "{{ vps_user }}"
@@ -26,7 +26,7 @@ jellyfin_media_readonly: true
 jellyfin_network: nginx_proxy_manager_network
 
 # Adres, który Jellyfin podaje klientom (aplikacje TV/mobile, DLNA)
-jellyfin_published_url: "https://jellyfin.sowa.ch"
+jellyfin_published_url: "https://cinema.sowa.ch"
 
 # Sprzętowe transkodowanie (Intel Quick Sync przez /dev/dri). Jeśli na hoście
 # nie ma /dev/dri/renderD128, rola po prostu go nie podłącza.

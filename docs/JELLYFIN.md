@@ -10,7 +10,7 @@ Rekord w Cloudflare **musi być DNS-only (szara chmurka)**: streaming wideo prze
 `212.127.93.27` → NPM (443) → `jellyfin:8096`.
 
 Konsekwencje i zabezpieczenia:
-- Widać domowe IP w DNS dla `jellyfin.sowa.ch` (inne hosty nadal za proxy CF).
+- Widać domowe IP w DNS dla `cinema.sowa.ch` (inne hosty nadal za proxy CF).
 - Logowanie Jellyfin jest dostępne z internetu → **silne hasła**, bez kont bez hasła,
   wyłączone „Show on login screen”/szybkie logowanie dla kont.
 - **fail2ban** (jail `jellyfin`): 5 nieudanych logowań w 10 min → ban na 6h. Ban idzie do
@@ -37,12 +37,12 @@ Konsekwencje i zabezpieczenia:
 
 ## Kroki ręczne po deployu
 
-1. **Cloudflare → DNS**: `A jellyfin → 212.127.93.27`, **Proxy status: DNS only** (szara chmurka).
-2. **NPM → Proxy Hosts → Add**: `jellyfin.sowa.ch` → `http` / `jellyfin` / `8096`,
+1. **Cloudflare → DNS**: `A cinema → 212.127.93.27`, **Proxy status: DNS only** (szara chmurka).
+2. **NPM → Proxy Hosts → Add**: `cinema.sowa.ch` → `http` / `jellyfin` / `8096`,
    *Websockets Support* ON, *Block Common Exploits* ON, **bez Access List**.
    SSL: *Request a new SSL Certificate* (Let's Encrypt, HTTP challenge przejdzie, bo rekord jest publiczny),
    *Force SSL* ON, *HTTP/2* ON. Advanced (opcjonalnie, duże pliki/seek): `proxy_buffering off;`
-3. Otwórz `https://jellyfin.sowa.ch` → kreator: konto admina (silne hasło), biblioteki
+3. Otwórz `https://cinema.sowa.ch` → kreator: konto admina (silne hasło), biblioteki
    `Filmy` → `/media/filmy`, `Seriale` → `/media/seriale`.
 4. KnownProxies ląduje w `/mnt/data2tb/jellyfin/config/config/network.xml` (katalog
    konfiguracji obrazu to `/config/config`; sam Jellyfin nie tworzy tego pliku przy pierwszym starcie).
@@ -78,7 +78,7 @@ Kroki ręczne:
 ## Klienci
 
 Aplikacja Jellyfin (Android/iOS/Android TV/webOS/Tizen) lub przeglądarka, serwer:
-`https://jellyfin.sowa.ch` — działa z dowolnej sieci, także na TV bez Tailscale.
+`https://cinema.sowa.ch` — działa z dowolnej sieci, także na TV bez Tailscale.
 
 ## Kopia zapasowa
 
