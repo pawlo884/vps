@@ -1,0 +1,50 @@
+---
+# Jellyfin — serwer multimediów (filmy/seriale) do odtwarzania zdalnego.
+# Dostęp: przez NPM (jellyfin.sowa.ch) publicznie, ale rekord w Cloudflare
+# MUSI być DNS-only (szara chmurka) — streaming wideo przez CF proxy łamie ich ToS.
+jellyfin_install: false
+jellyfin_user: "{{ vps_user }}"
+
+jellyfin_image: "jellyfin/jellyfin:12.4.20261026-211555"  # przypięte 2026-11-22 (= latest/12.4)
+jellyfin_container_name: jellyfin
+jellyfin_internal_port: 8096
+# Port na hoście — tylko loopback (docker_publish_bind), awaryjnie przez tunel SSH:
+#   ssh -L 8096:127.0.0.1:8096 pawel@HOST
+jellyfin_external_port: 8096
+
+jellyfin_compose_dir: "/home/{{ jellyfin_user }}/stacks/jellyfin"
+# Config + cache na dysku 2TB (cache transkodowania potrafi urosnąć do kilku GB)
+jellyfin_config_dir: /mnt/data2tb/jellyfin/config
+jellyfin_cache_dir: /mnt/data2tb/jellyfin/cache
+# Biblioteka multimediów — tu wrzucasz pliki (scp/rsync/Samba). W kontenerze: /media (read-only)
+jellyfin_media_dir: /mnt/data2tb/media
+jellyfin_media_subdirs:
+  - filmy
+  - seriale
+jellyfin_media_readonly: true
+
+jellyfin_network: nginx_proxy_manager_network
+
+# Adres, który Jellyfin podaje klientom (aplikacje TV/mobile, DLNA)
+jellyfin_published_url: "https://jellyfin.sowa.ch"
+
+# Sprzętowe transkodowanie (Intel Quick Sync przez /dev/dri). Jeśli na hoście
+# nie ma /dev/dri/renderD128, rola po prostu go nie podłącza.
+jellyfin_hwaccel: true
+jellyfin_hwaccel_device: /dev/dri
+
+jellyfin_memory_limit: 4G
+jellyfin_cpu_limit: "3.0"
+
+# Reverse proxy: Jellyfin musi ufać NPM, żeby widzieć prawdziwy IP klienta
+# (X-Forwarded-For) — inaczej fail2ban banowałby NPM zamiast atakującego.
+# Pusta lista = podsieć sieci Dockera `jellyfin_network` wykryta automatycznie.
+jellyfin_known_proxies: []
+
+# fail2ban na nieudane logowania (Jellyfin jest publiczny — DNS-only w Cloudflare).
+# Ban w łańcuchu DOCKER-USER, bo ruch do NPM (port 80/443 z Dockera) omija
+# łańcuch INPUT, w którym działa banaction=ufw.
+jellyfin_fail2ban: true
+jellyfin_fail2ban_maxretry: 5
+jellyfin_fail2ban_findtime: 10m
+jellyfin_fail2ban_bantime: 6h

@@ -1,0 +1,176 @@
+---
+- name: Jellyfin stack
+  when: jellyfin_install | default(false)
+  block:
+    - name: Look up Jellyfin user UID/GID
+      ansible.builtin.getent:
+        database: passwd
+        key: "{{ jellyfin_user }}"
+
+    - name: Check for GPU render device (hardware transcoding)
+      ansible.builtin.stat:
+        path: "{{ jellyfin_hwaccel_device }}/renderD128"
+      register: jellyfin_render_node
+      when: jellyfin_hwaccel | default(false)
+
+    - name: Look up render/video group GIDs
+      ansible.builtin.getent:
+        database: group
+      when:
+        - jellyfin_hwaccel | default(false)
+        - jellyfin_render_node.stat.exists | default(false)
+
+    - name: Set Jellyfin runtime facts
+      ansible.builtin.set_fact:
+        jellyfin_uid: "{{ getent_passwd[jellyfin_user][1] }}"
+        jellyfin_gid: "{{ getent_passwd[jellyfin_user][2] }}"
+        jellyfin_hwaccel_enabled: "{{ (jellyfin_hwaccel | default(false)) and (jellyfin_render_node.stat.exists | default(false)) }}"
+        jellyfin_group_add: >-
+          {{ [ (getent_group | default({})).get('render', [none, none])[1],
+               (getent_group | default({})).get('video', [none, none])[1] ] | select | list }}
+
+    - name: Check Jellyfin compose path state
+      ansible.builtin.stat:
+        path: "{{ jellyfin_compose_dir }}"
+      register: jellyfin_compose_path
+
+    - name: Remove wrong Jellyfin compose path when it's not a directory
+      ansible.builtin.file:
+        path: "{{ jellyfin_compose_dir }}"
+        state: absent
+      when: jellyfin_compose_path.stat.exists and (not jellyfin_compose_path.stat.isdir)
+
+    - name: Ensure Jellyfin directories exist
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        owner: "{{ jellyfin_user }}"
+        group: "{{ jellyfin_user }}"
+        mode: "0755"
+      loop:
+        - "{{ jellyfin_compose_dir }}"
+        - "{{ jellyfin_config_dir }}"
+        - "{{ jellyfin_cache_dir }}"
+        - "{{ jellyfin_media_dir }}"
+
+    - name: Ensure media library subdirectories exist
+      ansible.builtin.file:
+        path: "{{ jellyfin_media_dir }}/{{ item }}"
+        state: directory
+        owner: "{{ jellyfin_user }}"
+        group: "{{ jellyfin_user }}"
+        mode: "0775"
+      loop: "{{ jellyfin_media_subdirs | default([]) }}"
+
+    - name: Generate docker-compose.yml for Jellyfin
+      ansible.builtin.template:
+        src: docker-compose.yml.j2
+        dest: "{{ jellyfin_compose_dir }}/docker-compose.yml"
+        owner: "{{ jellyfin_user }}"
+        group: "{{ jellyfin_user }}"
+        mode: "0644"
+
+    - name: Ensure Docker network for Jellyfin proxy exists
+      community.docker.docker_network:
+        name: "{{ jellyfin_network }}"
+        state: present
+
+    - name: Start Jellyfin stack
+      community.docker.docker_compose_v2:
+        project_src: "{{ jellyfin_compose_dir }}"
+        state: present
+        recreate: auto
+      register: jellyfin_compose_result
+      # --check (docker compose --dry-run) nie pobiera obrazów — "No such image" w dry-run to nie błąd.
+      failed_when:
+        - jellyfin_compose_result is failed
+        - not (ansible_check_mode and 'No such image' in (jellyfin_compose_result.msg | default('')))
+      environment:
+        COMPOSE_PROJECT_NAME: jellyfin
+
+    # --- Reverse proxy: zaufaj NPM (prawdziwy IP klienta w logach) ---
+    - name: Read Jellyfin proxy network info
+      community.docker.docker_network_info:
+        name: "{{ jellyfin_network }}"
+      register: jellyfin_net_info
+      when: jellyfin_known_proxies | length == 0
+
+    - name: Set Jellyfin known proxies
+      ansible.builtin.set_fact:
+        jellyfin_known_proxies_effective: >-
+          {{ jellyfin_known_proxies if jellyfin_known_proxies | length > 0 else
+             ((jellyfin_net_info.network.IPAM.Config | default([])) | map(attribute='Subnet') | list
+              if (jellyfin_net_info.exists | default(false)) else []) }}
+
+    - name: Check Jellyfin network.xml (created on first start)
+      ansible.builtin.stat:
+        path: "{{ jellyfin_config_dir }}/network.xml"
+      register: jellyfin_network_xml
+
+    - name: Install python3-lxml (needed to edit network.xml)
+      ansible.builtin.apt:
+        name: python3-lxml
+        state: present
+      when: jellyfin_network_xml.stat.exists
+
+    - name: Configure Jellyfin KnownProxies
+      community.general.xml:
+        path: "{{ jellyfin_config_dir }}/network.xml"
+        xpath: /NetworkConfiguration/KnownProxies
+        set_children: "{{ jellyfin_known_proxies_effective | map('community.general.dict_kv', 'string') | list }}"
+      notify: restart jellyfin
+      when:
+        - jellyfin_network_xml.stat.exists
+        - jellyfin_known_proxies_effective | length > 0
+
+    # --- fail2ban: nieudane logowania ---
+    - name: Find Jellyfin log files
+      ansible.builtin.find:
+        paths: "{{ jellyfin_config_dir }}/log"
+        patterns: "log_*.log"
+      register: jellyfin_logs
+      when: jellyfin_fail2ban | default(false)
+
+    - name: Deploy fail2ban filter for Jellyfin
+      ansible.builtin.copy:
+        dest: /etc/fail2ban/filter.d/jellyfin.conf
+        mode: "0644"
+        content: |
+          # Zarządzane przez Ansible (rola jellyfin)
+          [Definition]
+          failregex = ^.*Authentication request for .* has been denied \(IP: "<ADDR>"\)\.
+          ignoreregex =
+      notify: restart fail2ban
+      when:
+        - jellyfin_fail2ban | default(false)
+        - jellyfin_logs.matched | default(0) > 0
+
+    - name: Deploy fail2ban jail for Jellyfin
+      ansible.builtin.copy:
+        dest: /etc/fail2ban/jail.d/jellyfin.local
+        mode: "0644"
+        content: |
+          # Zarządzane przez Ansible (rola jellyfin)
+          # DOCKER-USER: ruch do NPM idzie przez FORWARD, nie INPUT (ufw by nie zadziałał).
+          [jellyfin]
+          enabled  = true
+          filter   = jellyfin
+          logpath  = {{ jellyfin_config_dir }}/log/log_*.log
+          backend  = auto
+          banaction = iptables-allports[chain=DOCKER-USER]
+          maxretry = {{ jellyfin_fail2ban_maxretry }}
+          findtime = {{ jellyfin_fail2ban_findtime }}
+          bantime  = {{ jellyfin_fail2ban_bantime }}
+      notify: restart fail2ban
+      when:
+        - jellyfin_fail2ban | default(false)
+        - jellyfin_logs.matched | default(0) > 0
+
+    - name: Note when fail2ban jail could not be set up yet
+      ansible.builtin.debug:
+        msg: >-
+          Brak logów Jellyfin w {{ jellyfin_config_dir }}/log (pierwszy start?) —
+          jail fail2ban i KnownProxies zostaną ustawione przy następnym uruchomieniu roli.
+      when:
+        - jellyfin_fail2ban | default(false)
+        - (jellyfin_logs.matched | default(0)) == 0 or not jellyfin_network_xml.stat.exists

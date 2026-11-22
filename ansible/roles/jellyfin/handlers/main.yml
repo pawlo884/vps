@@ -1,0 +1,9 @@
+---
+- name: restart jellyfin
+  ansible.builtin.command:
+    argv: [docker, restart, "{{ jellyfin_container_name }}"]
+
+- name: restart fail2ban
+  ansible.builtin.systemd:
+    name: fail2ban
+    state: restarted
