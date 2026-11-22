@@ -1,7 +1,7 @@
 ---
 # Jellyfin — serwer multimediów (filmy/seriale) do odtwarzania zdalnego.
-# Dostęp: przez NPM (jellyfin.sowa.ch) tylko z LAN/Tailscale — NIE przez
-# Cloudflare proxy (streaming wideo przez CF łamie ich ToS i bywa dławiony).
+# Dostęp: przez NPM (jellyfin.sowa.ch) publicznie, ale rekord w Cloudflare
+# MUSI być DNS-only (szara chmurka) — streaming wideo przez CF proxy łamie ich ToS.
 jellyfin_install: false
 jellyfin_user: "{{ vps_user }}"
 
@@ -35,3 +35,16 @@ jellyfin_hwaccel_device: /dev/dri
 
 jellyfin_memory_limit: 4G
 jellyfin_cpu_limit: "3.0"
+
+# Reverse proxy: Jellyfin musi ufać NPM, żeby widzieć prawdziwy IP klienta
+# (X-Forwarded-For) — inaczej fail2ban banowałby NPM zamiast atakującego.
+# Pusta lista = podsieć sieci Dockera `jellyfin_network` wykryta automatycznie.
+jellyfin_known_proxies: []
+
+# fail2ban na nieudane logowania (Jellyfin jest publiczny — DNS-only w Cloudflare).
+# Ban w łańcuchu DOCKER-USER, bo ruch do NPM (port 80/443 z Dockera) omija
+# łańcuch INPUT, w którym działa banaction=ufw.
+jellyfin_fail2ban: true
+jellyfin_fail2ban_maxretry: 5
+jellyfin_fail2ban_findtime: 10m
+jellyfin_fail2ban_bantime: 6h

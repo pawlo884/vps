@@ -87,3 +87,90 @@
         - not (ansible_check_mode and 'No such image' in (jellyfin_compose_result.msg | default('')))
       environment:
         COMPOSE_PROJECT_NAME: jellyfin
+
+    # --- Reverse proxy: zaufaj NPM (prawdziwy IP klienta w logach) ---
+    - name: Read Jellyfin proxy network info
+      community.docker.docker_network_info:
+        name: "{{ jellyfin_network }}"
+      register: jellyfin_net_info
+      when: jellyfin_known_proxies | length == 0
+
+    - name: Set Jellyfin known proxies
+      ansible.builtin.set_fact:
+        jellyfin_known_proxies_effective: >-
+          {{ jellyfin_known_proxies if jellyfin_known_proxies | length > 0 else
+             ((jellyfin_net_info.network.IPAM.Config | default([])) | map(attribute='Subnet') | list
+              if (jellyfin_net_info.exists | default(false)) else []) }}
+
+    - name: Check Jellyfin network.xml (created on first start)
+      ansible.builtin.stat:
+        path: "{{ jellyfin_config_dir }}/network.xml"
+      register: jellyfin_network_xml
+
+    - name: Install python3-lxml (needed to edit network.xml)
+      ansible.builtin.apt:
+        name: python3-lxml
+        state: present
+      when: jellyfin_network_xml.stat.exists
+
+    - name: Configure Jellyfin KnownProxies
+      community.general.xml:
+        path: "{{ jellyfin_config_dir }}/network.xml"
+        xpath: /NetworkConfiguration/KnownProxies
+        set_children: "{{ jellyfin_known_proxies_effective | map('community.general.dict_kv', 'string') | list }}"
+      notify: restart jellyfin
+      when:
+        - jellyfin_network_xml.stat.exists
+        - jellyfin_known_proxies_effective | length > 0
+
+    # --- fail2ban: nieudane logowania ---
+    - name: Find Jellyfin log files
+      ansible.builtin.find:
+        paths: "{{ jellyfin_config_dir }}/log"
+        patterns: "log_*.log"
+      register: jellyfin_logs
+      when: jellyfin_fail2ban | default(false)
+
+    - name: Deploy fail2ban filter for Jellyfin
+      ansible.builtin.copy:
+        dest: /etc/fail2ban/filter.d/jellyfin.conf
+        mode: "0644"
+        content: |
+          # Zarządzane przez Ansible (rola jellyfin)
+          [Definition]
+          failregex = ^.*Authentication request for .* has been denied \(IP: "<ADDR>"\)\.
+          ignoreregex =
+      notify: restart fail2ban
+      when:
+        - jellyfin_fail2ban | default(false)
+        - jellyfin_logs.matched | default(0) > 0
+
+    - name: Deploy fail2ban jail for Jellyfin
+      ansible.builtin.copy:
+        dest: /etc/fail2ban/jail.d/jellyfin.local
+        mode: "0644"
+        content: |
+          # Zarządzane przez Ansible (rola jellyfin)
+          # DOCKER-USER: ruch do NPM idzie przez FORWARD, nie INPUT (ufw by nie zadziałał).
+          [jellyfin]
+          enabled  = true
+          filter   = jellyfin
+          logpath  = {{ jellyfin_config_dir }}/log/log_*.log
+          backend  = auto
+          banaction = iptables-allports[chain=DOCKER-USER]
+          maxretry = {{ jellyfin_fail2ban_maxretry }}
+          findtime = {{ jellyfin_fail2ban_findtime }}
+          bantime  = {{ jellyfin_fail2ban_bantime }}
+      notify: restart fail2ban
+      when:
+        - jellyfin_fail2ban | default(false)
+        - jellyfin_logs.matched | default(0) > 0
+
+    - name: Note when fail2ban jail could not be set up yet
+      ansible.builtin.debug:
+        msg: >-
+          Brak logów Jellyfin w {{ jellyfin_config_dir }}/log (pierwszy start?) —
+          jail fail2ban i KnownProxies zostaną ustawione przy następnym uruchomieniu roli.
+      when:
+        - jellyfin_fail2ban | default(false)
+        - (jellyfin_logs.matched | default(0)) == 0 or not jellyfin_network_xml.stat.exists
