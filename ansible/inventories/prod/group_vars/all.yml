@@ -152,6 +152,11 @@ prestashop_html_dir: /mnt/data2tb/prestashop/html
 jellyfin_install: true
 jellyfin_media_dir: /mnt/data2tb/media
 
+# File Browser — wrzucanie filmów przez przeglądarkę do jellyfin_media_dir.
+# NPM: pliki.sowa.ch → filebrowser:80, Access List `internal-panels`,
+# Advanced: client_max_body_size 0; (patrz docs/JELLYFIN.md)
+filebrowser_install: true
+
 # gitlab-runner nie jest zainstalowany na serwerze (sprawdzone 2026-09-13,
 # brak binarki/usługi, brak tokena) — jawnie wyłączone, żeby site.yml
 # nie próbował go instalować przy okazji.

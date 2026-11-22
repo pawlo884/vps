@@ -1,0 +1,32 @@
+---
+services:
+  filebrowser:
+    image: {{ filebrowser_image }}
+    container_name: {{ filebrowser_container_name }}
+    restart: unless-stopped
+    # Pliki zapisywane jako pawel — Jellyfin (też pawel) od razu je czyta.
+    user: "{{ filebrowser_uid }}:{{ filebrowser_gid }}"
+    ports:
+      - "{{ docker_publish_bind | default('127.0.0.1') }}:{{ filebrowser_external_port }}:{{ filebrowser_internal_port }}"
+    environment:
+      TZ: "Europe/Warsaw"
+    volumes:
+      - "{{ filebrowser_root_dir }}:/srv"
+      - "{{ filebrowser_data_dir }}/database:/database"
+      - "{{ filebrowser_data_dir }}/config:/config"
+    networks:
+      - {{ filebrowser_network }}
+    logging:
+      driver: "json-file"
+      options:
+        max-file: "3"
+        max-size: "20m"
+    deploy:
+      resources:
+        limits:
+          memory: {{ filebrowser_memory_limit }}
+
+networks:
+  {{ filebrowser_network }}:
+    name: {{ filebrowser_network }}
+    external: true

@@ -44,8 +44,31 @@ Konsekwencje i zabezpieczenia:
    `network.xml` i logi, więc rola ustawi `KnownProxies` (restart Jellyfin) i jail fail2ban.
    Sprawdzenie: `sudo fail2ban-client status jellyfin`.
 5. Dashboard → Playback → Transcoding: *Intel QuickSync (QSV)* (albo VAAPI), urządzenie `/dev/dri/renderD128`.
-6. Wrzucanie plików: `rsync -avP film.mkv pawel@daktylowy:/mnt/data2tb/media/filmy/`
-   (po Tailscale), potem w Jellyfin *Scan library* (albo poczekaj na automatyczny skan).
+6. Wrzucanie plików: przez **File Browser** (niżej) albo
+   `rsync -avP film.mkv pawel@daktylowy:/mnt/data2tb/media/filmy/` (po Tailscale).
+   Jellyfin sam wykrywa nowe pliki (albo *Scan library*).
+
+## Wrzucanie filmów przez przeglądarkę (File Browser)
+
+Rola `ansible/roles/filebrowser` (`filebrowser_install: true`). Strona www z przeciąganiem plików,
+której katalogiem głównym jest `/mnt/data2tb/media`, czyli wrzucasz prosto do `filmy/` albo `seriale/`.
+Działa jako `pawel`, więc Jellyfin od razu widzi pliki.
+
+**Dlaczego nie MinIO:** MinIO zapisuje obiekty we własnym formacie (`xl.meta` + części),
+a nie jako zwykłe pliki, więc Jellyfin nie przeczyta tego, co wrzucisz do bucketu.
+
+Kroki ręczne:
+1. **Cloudflare**: `pliki` jak inne panele (proxy może zostać, potrzebne tylko do certyfikatu).
+2. **NPM → Proxy Hosts → Add**: `pliki.sowa.ch` → `http` / `filebrowser` / `80`,
+   Access List **`internal-panels`** (LAN/Tailscale + hasło), SSL Let's Encrypt.
+   **Advanced** (inaczej duże filmy się nie wgrają):
+   ```
+   client_max_body_size 0;
+   proxy_request_buffering off;
+   ```
+   Wysyłaj z Tailscale/LAN: Split DNS kieruje wtedy prosto na serwer, z pominięciem limitu 100 MB w Cloudflare.
+3. Hasło admina: przy pierwszym starcie File Browser generuje losowe. Odczytasz je przez
+   `docker logs filebrowser 2>&1 | grep -i password`. Po zalogowaniu zmień je w *Settings → User Management*.
 
 ## Klienci
 

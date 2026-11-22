@@ -1,0 +1,52 @@
+---
+- name: File Browser stack
+  when: filebrowser_install | default(false)
+  block:
+    - name: Look up File Browser user UID/GID
+      ansible.builtin.getent:
+        database: passwd
+        key: "{{ filebrowser_user }}"
+
+    - name: Set File Browser runtime facts
+      ansible.builtin.set_fact:
+        filebrowser_uid: "{{ getent_passwd[filebrowser_user][1] }}"
+        filebrowser_gid: "{{ getent_passwd[filebrowser_user][2] }}"
+
+    - name: Ensure File Browser directories exist
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        owner: "{{ filebrowser_user }}"
+        group: "{{ filebrowser_user }}"
+        mode: "0755"
+      loop:
+        - "{{ filebrowser_compose_dir }}"
+        - "{{ filebrowser_data_dir }}/database"
+        - "{{ filebrowser_data_dir }}/config"
+        - "{{ filebrowser_root_dir }}"
+
+    - name: Generate docker-compose.yml for File Browser
+      ansible.builtin.template:
+        src: docker-compose.yml.j2
+        dest: "{{ filebrowser_compose_dir }}/docker-compose.yml"
+        owner: "{{ filebrowser_user }}"
+        group: "{{ filebrowser_user }}"
+        mode: "0644"
+
+    - name: Ensure Docker network for File Browser proxy exists
+      community.docker.docker_network:
+        name: "{{ filebrowser_network }}"
+        state: present
+
+    - name: Start File Browser stack
+      community.docker.docker_compose_v2:
+        project_src: "{{ filebrowser_compose_dir }}"
+        state: present
+        recreate: auto
+      register: filebrowser_compose_result
+      # --check (docker compose --dry-run) nie pobiera obrazów — "No such image" w dry-run to nie błąd.
+      failed_when:
+        - filebrowser_compose_result is failed
+        - not (ansible_check_mode and 'No such image' in (filebrowser_compose_result.msg | default('')))
+      environment:
+        COMPOSE_PROJECT_NAME: filebrowser
