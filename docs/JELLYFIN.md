@@ -15,6 +15,10 @@ Konsekwencje i zabezpieczenia:
   wyłączone „Show on login screen”/szybkie logowanie dla kont.
 - **fail2ban** (jail `jellyfin`): 5 nieudanych logowań w 10 min → ban na 6h. Ban idzie do
   łańcucha `DOCKER-USER`, bo ruch do NPM (port Dockera) omija `INPUT`, gdzie działa `ufw`.
+  Jail używa `action = iptables-allports[...]` — `banaction` z parametrem w nawiasie
+  dokleja się do szablonu z `[DEFAULT]` i fail2ban odrzuca taką definicję.
+  Jellyfin otwiera nowy plik `log_RRRRMMDD.log` o północy; fail2ban nie podłapuje go sam.
+  Po północy: `sudo fail2ban-client reload jellyfin`.
 - Jellyfin dostaje `KnownProxies` = podsieć sieci NPM, żeby w logach widział prawdziwy IP
   klienta (z `X-Forwarded-For`), a nie IP kontenera NPM.
 - Z LAN/Tailscale dalej działa ta sama nazwa (Split DNS → `100.111.250.35`).
@@ -66,7 +70,8 @@ Kroki ręczne:
    client_max_body_size 0;
    proxy_request_buffering off;
    ```
-   Wysyłaj z Tailscale/LAN: Split DNS kieruje wtedy prosto na serwer, z pominięciem limitu 100 MB w Cloudflare.
+   Wgrywaj z Tailscale. Split DNS (`sowa.ch` → `100.111.250.35`) omija limit 100 MB w Cloudflare.
+   Z LAN bez Tailscale NPM widzi adresy Cloudflare, a Access List je odcina (`Deny all`).
 3. Hasło admina: przy pierwszym starcie File Browser generuje losowe. Odczytasz je przez
    `docker logs filebrowser 2>&1 | grep -i password`. Po zalogowaniu zmień je w *Settings → User Management*.
 

@@ -25,6 +25,25 @@
         - "{{ filebrowser_data_dir }}/config"
         - "{{ filebrowser_root_dir }}"
 
+    # Obraz ma w środku użytkownika 1000. init.sh robi `cp -a` (set -e) i pada,
+    # gdy kontener chodzi jako inny UID (`can't preserve ownership`).
+    - name: Seed File Browser settings.json so init skips cp -a
+      ansible.builtin.copy:
+        dest: "{{ filebrowser_data_dir }}/config/settings.json"
+        owner: "{{ filebrowser_user }}"
+        group: "{{ filebrowser_user }}"
+        mode: "0644"
+        force: false
+        content: |
+          {
+            "port": 80,
+            "baseURL": "",
+            "address": "",
+            "log": "stdout",
+            "database": "/database/filebrowser.db",
+            "root": "/srv"
+          }
+
     - name: Generate docker-compose.yml for File Browser
       ansible.builtin.template:
         src: docker-compose.yml.j2

@@ -152,12 +152,14 @@
         content: |
           # Zarządzane przez Ansible (rola jellyfin)
           # DOCKER-USER: ruch do NPM idzie przez FORWARD, nie INPUT (ufw by nie zadziałał).
+          # `action`, nie `banaction`: [DEFAULT] owija banaction w kolejne [port=..., chain=INPUT]
+          # i definicja z podwójnymi nawiasami się nie wczytuje.
           [jellyfin]
           enabled  = true
           filter   = jellyfin
           logpath  = {{ jellyfin_config_dir }}/log/log_*.log
           backend  = auto
-          banaction = iptables-allports[chain=DOCKER-USER]
+          action   = iptables-allports[name=jellyfin, chain=DOCKER-USER]
           maxretry = {{ jellyfin_fail2ban_maxretry }}
           findtime = {{ jellyfin_fail2ban_findtime }}
           bantime  = {{ jellyfin_fail2ban_bantime }}
