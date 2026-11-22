@@ -144,6 +144,14 @@ prestashop_compose_dir: "/home/{{ vps_user }}/stacks/prestashop"
 prestashop_mysql_dir: /mnt/data2tb/prestashop/mysql
 prestashop_html_dir: /mnt/data2tb/prestashop/html
 
+# Jellyfin — filmy/seriale zdalnie. Tylko LAN/Tailscale, NIE przez Cloudflare proxy
+# (streaming wideo przez CF = naruszenie ToS). Po apply (patrz docs/JELLYFIN.md):
+# NPM: jellyfin.sowa.ch → jellyfin:8096, Websockets ON, Access List `tailscale-only`
+# Cloudflare: brak publicznego rekordu — nazwę rozwiązuje Split DNS w Tailscale.
+# Pliki wrzucasz do /mnt/data2tb/media/{filmy,seriale}.
+jellyfin_install: true
+jellyfin_media_dir: /mnt/data2tb/media
+
 # gitlab-runner nie jest zainstalowany na serwerze (sprawdzone 2026-09-13,
 # brak binarki/usługi, brak tokena) — jawnie wyłączone, żeby site.yml
 # nie próbował go instalować przy okazji.
